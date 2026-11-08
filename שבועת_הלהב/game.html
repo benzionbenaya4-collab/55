@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>שבועת הלהב – Oath of the Blade</title>
+<style>
+  html, body { margin:0; padding:0; background:#000; height:100%; overflow:hidden; font-family: "Segoe UI", Arial, sans-serif; color:#fff; user-select:none; }
+  #game { display:block; position:absolute; left:0; top:0; touch-action:none; }
+  /* ---------- שכבות DOM (לובי / חנות / בחירת דמות / השהיה) ---------- */
+  .overlay { position:absolute; inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:18px; text-align:center; }
+  .overlay.show { display:flex; }
+  #lobby { background: #000 center/cover no-repeat; }
+  #lobby::before { content:""; position:absolute; inset:0; background:rgba(0,0,0,.35); }
+  #lobby > * { position:relative; }
+  h1.title { font-size:clamp(34px, 6vw, 72px); margin:0 0 10px; text-shadow:0 4px 18px #000, 0 0 30px #7a3cff; letter-spacing:2px; }
+  h1.title small { display:block; font-size:.4em; opacity:.85; letter-spacing:6px; }
+  .btn { cursor:pointer; border:3px solid #fff; background:#1b1b1b; color:#fff; font-size:26px; padding:12px 44px; min-width:300px; border-radius:6px; transition:transform .08s, background .15s; font-family:inherit; }
+  .btn:hover { background:#333; transform:scale(1.04); }
+  .btn.img { border:none; background:none; padding:0; min-width:0; }
+  .btn.img img { width:320px; image-rendering:auto; display:block; border:3px solid #fff; border-radius:6px; }
+  .btn.small { font-size:16px; padding:6px 18px; min-width:0; opacity:.8; border-width:2px; }
+  .panel { background:#151515; border:3px solid #fff; border-radius:10px; padding:26px 34px; min-width:420px; max-height:88vh; overflow-y:auto; position:relative; box-shadow:0 10px 40px #000; }
+  .panel h2 { margin:0 0 18px; font-size:32px; }
+  .xbtn { position:absolute; left:10px; top:8px; width:38px; height:38px; border:2px solid #fff; background:#300; color:#fff; font-size:24px; line-height:32px; border-radius:6px; cursor:pointer; font-family:inherit; }
+  .xbtn:hover { background:#700; }
+  .item { display:flex; align-items:center; gap:16px; border:2px solid #666; border-radius:8px; padding:10px 14px; margin:8px 0; background:#222; }
+  .item img { width:64px; height:64px; image-rendering:pixelated; background:#111; border-radius:6px; }
+  .item .name { font-size:22px; flex:1; text-align:right; }
+  .item .price { font-size:18px; color:#ffd766; }
+  .item button { font-size:16px; padding:6px 14px; }
+  .chars { display:flex; gap:40px; }
+  .char { cursor:pointer; border:3px solid #666; border-radius:12px; padding:14px; background:#1a1a1a; width:220px; transition:.15s; }
+  .char:hover, .char.sel { border-color:#ffd766; transform:scale(1.05); background:#262626; }
+  .char img { height:220px; display:block; margin:0 auto 10px; image-rendering:auto; }
+  .char.pix img { image-rendering:pixelated; }
+  .char .n { font-size:24px; }
+  .char .d { font-size:14px; opacity:.8; margin-top:6px; }
+  .hint { font-size:15px; opacity:.7; }
+  #lobbyChar { cursor:pointer; text-align:center; margin:-6px 0 4px; }
+  #lobbyChar img { height:250px; display:block; margin:0 auto; filter:drop-shadow(0 8px 16px #000); transition:transform .12s; }
+  #lobbyChar:hover img { transform:scale(1.04); }
+  #lobbyCharName { font-size:26px; font-weight:bold; text-shadow:0 2px 8px #000; margin-top:4px; }
+  .xbtn.big { position:static; width:100%; height:48px; font-size:24px; margin-bottom:12px; background:#a00; border-width:3px; }
+  .xbtn.big:hover { background:#d00; }
+  .setrow { display:flex; align-items:center; justify-content:space-between; gap:16px; border:2px solid #555; border-radius:8px; padding:12px 16px; margin:10px 0; background:#222; font-size:20px; }
+  .toggle { cursor:pointer; border:3px solid #fff; border-radius:30px; padding:6px 22px; font-size:18px; font-family:inherit; background:#4a1010; color:#fff; min-width:110px; }
+  .toggle.on { background:#0f6b2a; }
+  .toggle::before { content:"● "; }
+  input[type=range] { width:180px; }
+  .filebtn { cursor:pointer; border:2px solid #fff; border-radius:6px; padding:6px 14px; background:#333; font-size:16px; }
+  .filebtn:hover { background:#444; }
+  .small-note { font-size:13px; opacity:.7; }
+  .item.locked { opacity:.55; }
+  .tier { font-size:13px; opacity:.7; }
+  #pause, #gameover, #victory { background:rgba(0,0,0,.6); }
+  #ytBox { position:absolute; left:10px; bottom:10px; width:200px; background:#000; border:2px solid #fff; border-radius:8px; overflow:hidden; display:none; z-index:5; }
+  #ytBox.show { display:block; }
+  #ytBox.tiny { width:40px; height:40px; }
+  #ytBox.tiny #ytPlayerWrap { width:1px; height:1px; overflow:hidden; opacity:.01; }
+  #ytPlayerWrap { width:200px; height:113px; }
+  #ytBar { display:flex; justify-content:space-between; align-items:center; padding:2px 6px; font-size:13px; background:#111; }
+  #ytBox.tiny #ytBar { padding:0; height:40px; justify-content:center; }
+  #ytBar button { cursor:pointer; background:none; border:1px solid #888; color:#fff; border-radius:4px; font-size:13px; }
+  #err { position:absolute; left:8px; bottom:8px; color:#f66; font-size:12px; direction:ltr; text-align:left; white-space:pre; display:none; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- ===== לובי ===== -->
+<div id="lobby" class="overlay">
+  <h1 class="title">שבועת הלהב<small>OATH OF THE BLADE</small></h1>
+  <button id="btnStart" class="btn img" title="Start Game"><img src="assets/ui/start_button.png" alt="התחל משחק"></button>
+  <button id="btnContinue" class="btn" style="display:none">המשך משחק</button>
+  <div id="lobbyChar" title="לחץ להחלפת דמות"><img id="lobbyCharImg" src="assets/characters/hero/portrait_front.png" alt=""><div id="lobbyCharName">הלוחם</div></div>
+  <button id="btnSwap" class="btn small">⇄ החלף דמות</button>
+  <button id="btnShop" class="btn">חנות</button>
+  <button id="btnSettings" class="btn">הגדרות</button>
+  <button id="btnNew" class="btn small" style="display:none">משחק חדש (מוחק שמירה)</button>
+  <div class="hint" id="creatorBadge" style="display:none;color:#ffd766">👑 מצב יוצר פעיל – הצ'יטים בהגדרות</div>
+  <div class="hint">חצים ← → תנועה · רווח קפיצה · X / לחיצה = תקיפה · C כוח מיוחד · E המשך · ESC תפריט</div>
+</div>
+
+<!-- ===== חנות ===== -->
+<div id="shop" class="overlay">
+  <div class="panel">
+    <button class="xbtn big" id="btnShopClose">✕ סגור את החנות</button>
+    <h2>חנות</h2>
+    <div id="shopCoins" style="color:#ffd766;font-size:18px;margin-bottom:10px">מטבעות: 0</div>
+    <div id="shopItems"></div>
+    <button class="btn" id="btnShopClose2" style="margin-top:14px">✕ סגור</button>
+  </div>
+</div>
+
+<!-- ===== הגדרות ===== -->
+<div id="settings" class="overlay">
+  <div class="panel">
+    <button class="xbtn big" id="btnSettingsClose">✕ סגור</button>
+    <h2>הגדרות</h2>
+    <div class="setrow"><div>תיבות פגיעה<div class="small-note">מראה על שחקן, מפלצות, חצים וקסמים את האזור שבו פגיעה נחשבת</div></div><button class="toggle" id="tglHitbox">כבוי</button></div>
+    <div id="hbOptions" style="border:2px dashed #555;border-radius:8px;padding:6px 14px;margin:-4px 0 10px;display:none">
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>סגנון</div><div style="display:flex;gap:8px"><button class="toggle" id="hbStyleBox">ריבוע</button><button class="toggle" id="hbStyleGlow">זוהר סביב הדמות</button></div></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>גוף – שחקן ומפלצות</div><div style="display:flex;gap:8px;align-items:center"><input type="color" id="hbColBody" value="#4cff4c" title="צבע"><button class="toggle" id="hbBody">פעיל</button></div></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>קליעים – חצים, קריסטלים, אש, כדורי בוס</div><div style="display:flex;gap:8px;align-items:center"><input type="color" id="hbColProj" value="#4cffe0" title="צבע"><button class="toggle" id="hbProj">פעיל</button></div></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>טווחי התקפה מקרוב<div class="small-note">מקווקו: מאיפה החרב/הברק פוגעים, ומאיפה המפלצת שורטת אותך</div></div><div style="display:flex;gap:8px;align-items:center"><input type="color" id="hbColRange" value="#ffe066" title="צבע"><button class="toggle" id="hbRange">כבוי</button></div></div>
+    </div>
+    <div class="setrow" style="flex-direction:column;align-items:stretch"><div>שיר מיוטיוב<div class="small-note" id="ytName">הדבק קישור לשיר מיוטיוב ולחץ "נגן" – השיר מתנגן בלופ (צריך אינטרנט)</div></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <input type="text" id="ytLink" placeholder="https://www.youtube.com/watch?v=..." style="flex:1;font-size:16px;padding:6px 10px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;direction:ltr">
+        <button class="filebtn" id="ytPlay">נגן</button>
+        <button class="filebtn" id="ytRemove" title="הסר">🗑</button>
+      </div></div>
+    <div class="setrow"><div>או קובץ שיר מהמחשב<div class="small-note" id="musicName">לא נבחר שיר</div></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label class="filebtn">בחר שיר… <input type="file" id="musicFile" accept="audio/*" style="display:none"></label>
+        <button class="filebtn" id="musicRemove" title="הסר שיר">🗑</button>
+      </div></div>
+    <div class="setrow"><div>עוצמת מוזיקה</div><input type="range" id="musicVol" min="0" max="100" value="60"></div>
+    <div class="setrow"><div>השתקה</div><button class="toggle" id="tglMute">כבוי</button></div>
+    <div class="setrow"><div>מזהה שחקן<div class="small-note" id="playerIdNote"></div></div><button class="filebtn" id="btnRename">שנה שם</button></div>
+    <div id="creatorPanel" style="display:none;border:2px solid #ffd766;border-radius:8px;padding:6px 14px;margin:-4px 0 10px">
+      <div style="font-size:20px;font-weight:bold;color:#ffd766;margin:6px 0">מצב יוצר 👑</div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>אינסוף חיים ומגן</div><button class="toggle" id="chGod">כבוי</button></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>אינסוף מהלכים (בלי זמן קירור)</div><button class="toggle" id="chInf">כבוי</button></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>קפיצה לשלב</div><div style="display:flex;gap:8px;align-items:center"><input type="number" id="chLevel" min="1" max="18" value="1" style="width:70px;font-size:18px;padding:4px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;text-align:center"><button class="filebtn" id="chGo">עבור</button></div></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>מטבעות</div><button class="filebtn" id="chCoins">+1000</button></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0"><div>כל הנשקים (וויד, כאוס, אור, זימונים)</div><button class="filebtn" id="chAll">פתח הכל</button></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0;flex-direction:column;align-items:stretch"><div>בוט היוצר 🤖<div class="small-note">כתוב פקודה, למשל: "תביא לי אלף מטבעות", "תן לי חיים", "עבור לשלב 12", "3 ערכות רפואה", "פתח את כל הנשקים", "אינסוף חיים", "מתנה 500"</div></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="botInput" placeholder="מה תרצה?" style="flex:1;font-size:16px;padding:8px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;font-family:inherit"><button class="filebtn" id="botSend">שלח</button></div>
+        <div id="botReply" class="small-note" style="color:#8dffb0;min-height:18px;margin-top:6px"></div></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0;flex-direction:column;align-items:stretch"><div>מתנת מטבעות לשחקן אחר 🎁<div class="small-note">יוצר קוד מתנה. השחקן מקליד אותו אצלו ב"מימוש קוד מתנה" ומקבל את המטבעות (כל קוד פעם אחת לכל שחקן)</div></div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input type="number" id="giftAmount" min="1" value="500" style="width:110px;font-size:18px;padding:6px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;text-align:center"><button class="filebtn" id="giftMake">צור קוד מתנה</button><span id="giftCode" style="font-family:monospace;font-size:20px;color:#ffd766;direction:ltr;user-select:all"></span></div></div>
+      <div class="setrow" style="border:none;background:none;padding:8px 0;flex-direction:column;align-items:stretch"><div>קוד המשחק<div class="small-note">מציג את כל הקוד כאן. אפשר לערוך ולהריץ – השינוי פעיל עד שסוגרים את הדף; "הורד" שומר קובץ עם השינויים</div></div>
+        <div style="display:flex;gap:8px;margin-top:8px"><button class="filebtn" id="chCode">הצג קוד</button><button class="filebtn" id="chRun" style="display:none">הרץ את הקוד הערוך</button><button class="filebtn" id="chDownload" style="display:none">הורד כקובץ</button></div>
+        <textarea id="codeBox" spellcheck="false" style="display:none;width:100%;box-sizing:border-box;height:360px;margin-top:8px;font:12px/1.4 Consolas,monospace;direction:ltr;text-align:left;white-space:pre;background:#0b0b0b;color:#d8d8d8;border:2px solid #666;border-radius:6px;padding:8px"></textarea></div>
+    </div>
+    <div class="setrow"><div>מימוש קוד מתנה 🎁<div class="small-note" id="giftNote">קיבלת קוד מתנה מהיוצר? הקלד אותו כאן</div></div><div style="display:flex;gap:8px"><input type="text" id="giftInput" placeholder="OB-…" style="width:170px;font-size:16px;padding:6px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;direction:ltr;text-align:center"><button class="filebtn" id="giftRedeem">ממש</button></div></div>
+    <div class="setrow" style="flex-direction:column;align-items:stretch"><div>רעיונות למשחק<div class="small-note">כתבו רעיון ליוצרים – נפתחת הודעת מייל מוכנה לשליחה</div></div>
+      <textarea id="ideaSettings" rows="2" placeholder="רעיון, נשק, שלב, בוס…" style="width:100%;box-sizing:border-box;margin-top:8px;font-size:15px;padding:8px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;font-family:inherit"></textarea>
+      <button class="filebtn" id="btnIdeaSettings" style="margin-top:8px;align-self:flex-start">שלח רעיון ליוצרים</button></div>
+    <div class="setrow"><div>רמת קושי<div class="small-note">קל = 50% פחות חיים למפלצות · רגיל = כמו שהוא · קשה = 50% יותר חיים. חל על מפלצות ובוסים מהשלב הבא</div></div>
+      <div style="display:flex;gap:8px"><button class="toggle" id="diffEasy">קל</button><button class="toggle" id="diffNormal">רגיל</button><button class="toggle" id="diffHard">קשה</button></div></div>
+    <div class="setrow"><div>טלפון / מסך מגע<div class="small-note">כפתורי תנועה, קפיצה, תקיפה וכוח על המסך. נדלק לבד בטלפון; אפשר להדליק גם במחשב עם מסך מגע</div></div><button class="toggle" id="tglTouch">כבוי</button></div>
+  </div>
+</div>
+
+<!-- ===== לוחם: חרב או קשת ===== -->
+<!-- ===== שם השחקן (בפעם הראשונה) ===== -->
+<div id="nameScreen" class="overlay" style="background:rgba(0,0,0,.85)">
+  <div class="panel" style="max-width:520px">
+    <h2>מה השם שלך?</h2>
+    <input type="text" id="playerName" maxlength="20" placeholder="השם שלך" style="width:100%;box-sizing:border-box;font-size:22px;padding:10px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;font-family:inherit;text-align:center">
+    <div class="small-note" style="margin:10px 0 14px">המשחק ייצור לך מזהה שחקן. אפשר לראות אותו בהגדרות.</div>
+    <div id="creatorPinRow" style="display:none;margin-bottom:12px"><div class="small-note" style="margin-bottom:6px">השם הזה שמור ליוצר. הקלד את קוד היוצר:</div>
+      <input type="password" id="creatorPin" placeholder="קוד היוצר" style="width:100%;box-sizing:border-box;font-size:20px;padding:8px;border-radius:6px;border:2px solid #a00;background:#111;color:#fff;font-family:inherit;text-align:center;direction:ltr"></div>
+    <div id="nameError" class="small-note" style="color:#f66;min-height:18px"></div>
+    <button class="btn" id="btnNameOk">המשך</button>
+  </div>
+</div>
+
+<div id="lineSelect" class="overlay" style="background:rgba(0,0,0,.8)">
+  <h2 style="font-size:34px;margin:0">עם מה תצא למסע?</h2>
+  <div class="chars">
+    <div class="char" data-line="sword"><img src="assets/weapons/sword_basic.png" alt=""><div class="n">חרב</div><div class="d">קרב מגע · שיסוע</div></div>
+    <div class="char" data-line="bow"><img src="assets/weapons/bow_wood.png" alt=""><div class="n">חץ וקשת</div><div class="d">ירי מרחוק · מטח חצים</div></div>
+  </div>
+  <div class="hint">30 הריגות עם הנשק מחזקות אותו · ניצחון על הדרקון בשלב 2 נותן לו את דרגת הדרקון</div>
+</div>
+
+<!-- ===== השהיה ===== -->
+<div id="pause" class="overlay">
+  <div class="panel">
+    <h2>השהיה</h2>
+    <button class="btn" id="btnResume">המשך</button><br><br>
+    <button class="btn" id="btnPauseSettings">הגדרות</button><br><br>
+    <button class="btn" id="btnToLobby">שמור וחזור ללובי</button>
+  </div>
+</div>
+
+<div id="gameover" class="overlay">
+  <div class="panel">
+    <h2 style="color:#f55">נפלת בקרב…</h2>
+    <div id="medkitInfo" style="font-size:17px;margin-bottom:12px"></div>
+    <button class="btn" id="btnRetry">נסה שוב</button><br><br>
+    <button class="btn small" id="btnBuyMedkit" style="display:none">קנה ערכת רפואה (100 מטבעות)</button><br>
+    <button class="btn" id="btnGoLobby">חזרה ללובי</button>
+  </div>
+</div>
+
+<div id="victory" class="overlay">
+  <div class="panel" style="max-width:560px">
+    <h2 style="color:#ffd766">המשחק נגמר</h2>
+    <div style="font-size:22px;margin-bottom:14px">תחכו למשחק הבא (:</div>
+    <div style="font-size:15px;opacity:.85;margin-bottom:8px">יש לכם רעיונות למשחק? כתבו ליוצרים:</div>
+    <textarea id="ideaEnd" rows="3" placeholder="רעיון, נשק, שלב, בוס…" style="width:100%;box-sizing:border-box;font-size:16px;padding:8px;border-radius:6px;border:2px solid #666;background:#111;color:#fff;font-family:inherit"></textarea>
+    <button class="btn" id="btnIdeaEnd" style="margin-top:10px">לשלוח הודעה ליוצרים</button><br><br>
+    <button class="btn" id="btnVicLobby">חזרה ללובי</button>
+  </div>
+</div>
+<div id="ytBox"><div id="ytPlayerWrap"><div id="ytPlayer"></div></div><div id="ytBar"><span id="ytTitle">🎵</span><button id="ytTiny" title="הקטן / הגדל">▁</button></div></div>
+<div id="err"></div>
+
+<script>
+'use strict';
+// =====================================================================
+//  שבועת הלהב – Oath of the Blade  (אבטיפוס 2D)
+//  קובץ אחד. הנכסים בתיקיית assets/ (נבנים ע"י tools/build_assets.py)
+// =====================================================================
+
+// ---------- קבועים ----------
+const LW = 1280, LH = 720;          // רזולוציה לוגית
+const GROUND_Y = 620;               // קו הקרקע במסך (בזום 1)
+const GRAVITY = 1900;
+let SAVE_KEY = 'oath_save_v1';
+
+// ---------- טבלאות נתונים (קל להרחיב) ----------
+// כל נשק שייך ל"קו" (חרב / קשת / שרביט) עם 3 דרגות: בסיסי -> אחרי 30 הריגות -> דרגת דרקון
+const WEAPONS = {
+  sword_basic:  { name:'חרב בסיסית',  icon:'assets/weapons/sword_basic.png',  kind:'melee', dmg:14, range:125, cooldown:0.34, color:'#dfe6ee', len:105, attackName:'שיסוע', special:{ name:'סיבוב להב', cd:6, type:'spin' } },
+  sword_red:    { name:'חרב הדם',     icon:'assets/weapons/sword_red.png',    kind:'melee', dmg:28, range:135, cooldown:0.32, color:'#ff3b3b', len:120, attackName:'שיסוע', special:{ name:'סיבוב להב', cd:6, type:'spin' } },
+  sword_dragon: { name:'חרב הדרקון',  icon:'assets/weapons/sword_dragon.png', kind:'melee', dmg:40, range:145, cooldown:0.30, color:'#c060ff', len:125, attackName:'שיסוע', special:{ name:'קריסטלי דרקון', cd:6, type:'crystals' } },
+  bow_wood:     { name:'קשת עץ',      icon:'assets/weapons/bow_wood.png',     kind:'bow',   dmg:14, speed:820, cooldown:0.55, color:'#e0b070', len:115, attackName:'ירי',   arrow:'arrow_bow_wood',   special:{ name:'מטח חצים', cd:5, type:'volley' } },
+  bow_red:      { name:'קשת הדם',     icon:'assets/weapons/bow_red.png',      kind:'bow',   dmg:28, speed:880, cooldown:0.50, color:'#ff3b3b', len:120, attackName:'ירי',   arrow:'arrow_bow_red',    special:{ name:'מטח חצים', cd:5, type:'volley' } },
+  bow_dragon:   { name:'קשת הדרקון',  icon:'assets/weapons/bow_dragon.png',   kind:'bow',   dmg:41, speed:940, cooldown:0.55, color:'#c060ff', len:125, attackName:'ירי',   arrow:'arrow_bow_dragon', dragonArrow:true, special:{ name:'גשם דרקונים', cd:7, type:'rain' } },
+  wand_basic:   { name:'שרביט רגיל',  icon:'assets/weapons/wand_basic.png',   kind:'wand',  dmg:11, range:480, cooldown:0.45, color:'#c88cff', len:130, attackName:'ברק',   special:{ name:'ברק משורשר', cd:5, type:'chain' } },
+  wand_orb:     { name:'שרביט הכדור', icon:'assets/weapons/wand_orb.png',     kind:'wand',  dmg:22, range:520, cooldown:0.42, color:'#e0b0ff', len:130, attackName:'ברק',   special:{ name:'ברק משורשר', cd:5, type:'chain' } },
+  wand_sigil:   { name:'שרביט הציור', icon:'assets/weapons/wand_sigil.png',   kind:'wand',  dmg:33, range:560, cooldown:0.40, color:'#a040ff', len:135, attackName:'ברק',   special:{ name:'זימון דרקון', cd:10, type:'summon' } },
+  // ---- העולם ההפוך: הנשקים משתדרגים אוטומטית בכניסה לפורטל ----
+  sword_void:   { name:'חרב אנטי-חומר', icon:'assets/weapons/sword_void.png',  kind:'melee', dmg:55, range:150, cooldown:0.30, color:'#7a1fff', len:130, attackName:'שיסוע אפל', darkwave:true, special:{ name:'השמדה', cd:8, type:'annihilate' } },
+  bow_void:     { name:'קשת הוויד',     icon:'assets/weapons/bow_void.png',    kind:'bow',   dmg:55, speed:900, cooldown:0.55, color:'#7a1fff', len:130, attackName:'ירי וויד', arrow:'arrow_bow_void', blackhole:true, special:{ name:'חור שחור', cd:9, type:'blackhole' } },
+  wand_void:    { name:'שרביט הנשמות',  icon:'assets/weapons/wand_void.png',   kind:'wand',  dmg:44, range:600, cooldown:0.40, color:'#b070ff', len:140, attackName:'ברק נשמות', soul:0.35, special:{ name:'סערת נשמות', cd:8, type:'soulstorm' } },
+  // ---- נשק הכאוס: אחרי שרידה בחדר המתכווץ ----
+  sword_chaos:  { name:'חרב הכאוס',     icon:'assets/weapons/sword_chaos.png', kind:'melee', dmg:95, range:165, cooldown:0.26, color:'#ff2bd6', len:135, attackName:'שיסוע כאוס', darkwave:true, chaos:true, special:{ name:'סערת כאוס', cd:7, type:'chaosstorm' } },
+  bow_chaos:    { name:'קשת הכאוס',     icon:'assets/weapons/bow_chaos.png',   kind:'bow',   dmg:98, speed:980, cooldown:0.45, color:'#ff2bd6', len:135, attackName:'ירי כאוס', arrow:'arrow_bow_chaos', blackhole:true, chaos:true, special:{ name:'גשם כאוס', cd:8, type:'chaosrain' } },
+  wand_chaos:   { name:'שרביט הכאוס',   icon:'assets/weapons/wand_chaos.png',  kind:'wand',  dmg:75, range:680, cooldown:0.36, color:'#ff2bd6', len:145, attackName:'ברק כאוס', soul:1.0, multi:3, chaos:true, special:{ name:'סערת כאוס', cd:7, type:'chaosstorm' } },
+  // ---- נשקי האור: אחרי שמלך הצללים מתלבן ומצטרף אליכם ----
+  sword_white:  { name:'חרב האור',      icon:'assets/weapons/sword_white.png', kind:'melee', dmg:135, range:170, cooldown:0.24, color:'#ffffff', len:135, attackName:'שיסוע אור', darkwave:true, chaos:true, special:{ name:'סערת אור', cd:6, type:'chaosstorm' } },
+  bow_white:    { name:'קשת האור',      icon:'assets/weapons/bow_white.png',   kind:'bow',   dmg:138, speed:1000, cooldown:0.42, color:'#ffffff', len:135, attackName:'ירי אור', arrow:'arrow_bow_white', blackhole:true, chaos:true, special:{ name:'גשם אור', cd:7, type:'chaosrain' } },
+  wand_white:   { name:'שרביט האור',    icon:'assets/weapons/wand_white.png',  kind:'wand',  dmg:105, range:720, cooldown:0.34, color:'#ffffff', len:145, attackName:'ברק אור', soul:1.0, multi:4, chaos:true, special:{ name:'סערת אור', cd:6, type:'chaosstorm' } },
+};
+const LINES = {
+  sword: { name:'חרב',     tiers:['sword_basic','sword_red','sword_dragon','sword_void','sword_chaos','sword_white'] },
+  bow:   { name:'חץ וקשת', tiers:['bow_wood','bow_red','bow_dragon','bow_void','bow_chaos','bow_white'] },
+  wand:  { name:'שרביט',   tiers:['wand_basic','wand_orb','wand_sigil','wand_void','wand_chaos','wand_white'] },
+};
+const UPGRADE_KILLS = 30;           // כמה הריגות עד השדרוג
+const CHARACTERS = {
+  hero:   { name:'הלוחם', hp:120, armor:50, speed:320, jump:640, lines:['sword','bow'], h:150, pix:false },
+  wizard: { name:'הקוסם', hp:100, armor:40, speed:300, jump:620, lines:['wand'],        h:165, pix:false },
+};
+// הנשק הנוכחי של דמות – לפי הקו שנבחר, מספר ההריגות, והאם הדרקון הובס
+function lineOf(char){ return save.line[char] || CHARACTERS[char].lines[0]; }
+// ההריגות נספרות לכל קו נשק בנפרד: 30 הריגות עם החרב פותחות את חרב הדם, 30 עם הקשת את קשת הדם, וכו'.
+// דרגת הדרקון נפתחת רק לקו הנשק שניצח את הדרקון. ההיסטוריה נשמרת בפרופיל ולא מתאפסת ב"משחק חדש".
+function totalKills(){ return profile.kills.sword + profile.kills.bow + profile.kills.wand; }
+function killsOf(line){ return profile.kills[line] || 0; }
+// דרגות 3-4 שייכות לעולם ההפוך: בכניסה לפורטל הנשק הופך לנשק וויד, ואחרי החדר המתכווץ – לנשק הכאוס
+function tierOfLine(ln){
+  if (save.white) return 5;                                  // נשקי האור – אחרי מלך הצללים
+  if (save.inverted) return profile.chaos[ln] ? 4 : 3;
+  return profile.dragon[ln] ? 2 : (killsOf(ln) >= UPGRADE_KILLS ? 1 : 0);
+}
+function tierOf(char){ return tierOfLine(lineOf(char)); }
+function hostile(e){ return !e.dead && !e.ally; }
+// המכניקה ההפוכה: בעולם ההפוך – פחות חיים = יותר נזק (עד פי 2.5)
+function invertedMult(){ return (level && level.def.inverted && player) ? 1 + (1 - player.hp/player.maxHp)*1.5 : 1; }
+function currentWeaponId(char){ return LINES[lineOf(char)].tiers[tierOf(char)]; }
+// יסודות המפלצות: מיני = אויב רגיל, boss = בוס סוף השלב
+const ELEMENTS = {
+  water:  { name:'מים',      color:'#3cc8ff', special:'orb'     },
+  fire:   { name:'אש/אדמה',  color:'#ff8a2a', special:'erupt'   },
+  dark:   { name:'חושך',     color:'#b04cff', special:'blink'   },
+  nature: { name:'רוח/טבע',  color:'#7fe04a', special:'summon'  },
+  ice:    { name:'קרח',      color:'#9ae6ff', special:'frost'   },
+  blood:  { name:'דם/רעל',   color:'#ff3358', special:'drain'   },
+  dragon: { name:'הדרקון הסגול', color:'#c060ff', special:'breath' },
+  shadow: { name:'מפלצת הצל', color:'#8a2be2', special:'shadow'  },
+  universe: { name:'בוס היקום', color:'#4fd8ff', special:'universe', sprite:'shadow', filter:'hue-rotate(300deg) saturate(2.2) brightness(1.45)' },
+  devil:    { name:'השטן',      color:'#ff3020', special:'devil',    sprite:'devil' },
+};
+// השלבים – כל שלב: יסוד, רקע, מספר אויבים, טקסט פתיחה
+// כל שלב: segments = רצף אזורים (חוץ/מערה) לאורך המפה, bossBg = רקע זירת הבוס, fork = מיקום הפיצול לדרקון
+const LEVELS = [
+  { id:1, element:'water',  segments:[['mountains',1900],['cave',3800]], bossBg:'mountains', enemies:8,  title:'שלב 1 – אגם הצללים',   intro:'המפלצות הראשונות שמעו על השבועה. הן מחכות ליד האגם.' },
+  { id:2, element:'fire',   segments:[['field',1400],['cave',3800]],     bossBg:'cave',      enemies:8,  title:'שלב 2 – מערות הגחלים',  intro:'האדמה רועדת. משהו עתיק ישן מתחת להרים.', fork:2300 },
+  { id:3, element:'dark',   segments:[['night',1300],['cave',2600],['night',3800]], bossBg:'night', enemies:9, title:'שלב 3 – יער החושך', intro:'הצל של הצל. כאן נולדות המפלצות של הלילה.' },
+  { id:4, element:'nature', segments:[['field',2200],['cave',3800]],     bossBg:'field',     enemies:9,  title:'שלב 4 – שדות הרוח',     intro:'הרוח לוחשת שמות של מתים. השדות אינם ריקים.' },
+  { id:5, element:'ice',    segments:[['snow',1500],['cave',2700],['snow',3800]], bossBg:'snow', enemies:10, title:'שלב 5 – פסגות הקרח',   intro:'הקור חותך כמו להב. הדרך לצל עוברת כאן.' },
+  { id:6, element:'blood',  segments:[['cave',2000],['night',3800]],     bossBg:'cave',      enemies:10, title:'שלב 6 – מערות הדם',     intro:'המערות מדממות. אנחנו קרובים.' },
+  { id:7, element:'shadow', segments:[],                                  bossBg:'shadow',    enemies:0,  title:'שלב אחרון – מפלצת הצל', intro:'זו המפלצת שהרגה את הסנסיי של הסנסיי שלי. הגיע הזמן.', finalBoss:true, portal:true },
+  // ---- העולם ההפוך (נפתח אחרי מפלצת הצל, דרך הפורטל הסודי) ----
+  { id:8,  element:'dark',   segments:[['void',2000],['voidcave',3800]], bossBg:'void', enemies:12, title:'העולם ההפוך – שער הצללים', intro:'הכל הפוך כאן. ככל שאתה חלש יותר – אתה חזק יותר.', inverted:true },
+  { id:9,  element:'blood',  segments:[],  bossBg:'voidcave', enemies:0, title:'העולם ההפוך – החדר המתכווץ', intro:'הקירות זזים. שרוד 60 שניות.', inverted:true, survive:60 },
+  { id:10, element:'shadow', segments:[],  bossBg:'void',     enemies:0, title:'העולם ההפוך – מלך הצללים', intro:'הצל של הצל.', inverted:true, bossOnly:true, cutscene:true, bossTitle:'מלך הצללים' },
+  // ---- עולם הצללים: ששת הדרקונים שהרוע השתלט עליהם, ואז בוס היקום ----
+  { id:11, element:'water',  segments:[], bossBg:'void',     enemies:0, title:'עולם הצללים – דרקון המים',   intro:'הראשון מששת הדרקונים. הרוע בתוכו.', inverted:true, bossOnly:true, bossTitle:'דרקון המים' },
+  { id:12, element:'fire',   segments:[], bossBg:'voidcave', enemies:0, title:'עולם הצללים – דרקון האדמה',  intro:'האדמה עצמה נלחמת בך.', inverted:true, bossOnly:true, bossTitle:'דרקון האדמה' },
+  { id:13, element:'dark',   segments:[], bossBg:'void',     enemies:0, title:'עולם הצללים – דרקון החושך',  intro:'החושך שבתוך החושך.', inverted:true, bossOnly:true, bossTitle:'דרקון החושך' },
+  { id:14, element:'nature', segments:[], bossBg:'voidcave', enemies:0, title:'עולם הצללים – דרקון הטבע',   intro:'היער נושם רעל.', inverted:true, bossOnly:true, bossTitle:'דרקון הטבע' },
+  { id:15, element:'ice',    segments:[], bossBg:'void',     enemies:0, title:'עולם הצללים – דרקון הקרח',   intro:'הקור שמקפיא את הזמן.', inverted:true, bossOnly:true, bossTitle:'דרקון הקרח' },
+  { id:16, element:'blood',  segments:[], bossBg:'voidcave', enemies:0, title:'עולם הצללים – דרקון הדם',    intro:'האחרון מהשישה.', inverted:true, bossOnly:true, bossTitle:'דרקון הדם' },
+  { id:17, element:'universe', segments:[], bossBg:'void',   enemies:0, title:'עולם הצללים – בוס היקום',    intro:'האחראי על כל חלקיק ביקום, ועל ששת הדרקונים.', inverted:true, bossOnly:true, universe:true, bossTitle:'בוס היקום' },
+  // ---- עולם הרוע: הבוס האמיתי ----
+  { id:18, element:'devil',  segments:[], bossBg:'hell',     enemies:0, title:'עולם הרוע – השטן',           intro:'הבוס האמיתי. שש רגליים, ולב שלא נגמר.', inverted:true, bossOnly:true, finalBoss:true, bossTitle:'השטן' },
+];
+const MINI_ELEMENTS = ['water','fire','dark','nature','ice','blood'];
+// סטטיסטיקה לפי שלב
+function miniStats(lvl){
+  if (lvl >= 8) return { hp: 170 + 60*(lvl-8), dmg: 24 + 4*(lvl-8), speed: 215 };   // העולם ההפוך
+  return { hp: 40 + 22*(lvl-1), dmg: 6 + 3*(lvl-1), speed: 150 + 12*lvl };
+}
+function bossStats(lvl, el){
+  if (lvl === 18) return { hp: 9000, dmg: 46, speed: 235 };      // השטן
+  if (lvl === 17) return { hp: 5000, dmg: 40, speed: 230 };      // בוס היקום
+  if (lvl >= 11) return { hp: 2400 + 300*(lvl-11), dmg: 30 + 2*(lvl-11), speed: 220 };   // ששת הדרקונים
+  if (lvl === 10) return { hp: 2800, dmg: 34, speed: 225 };      // מלך הצללים
+  if (lvl >= 8) return { hp: 1600, dmg: 30, speed: 210 };
+  if (el === 'shadow') return { hp: 1300, dmg: 26, speed: 200 };
+  if (el === 'dragon') return { hp: 420, dmg: 18, speed: 170 };
+  return { hp: 220 + 130*(lvl-1), dmg: 12 + 3*lvl, speed: 150 + 10*lvl };
+}
+
+// ---------- הסיפור ----------
+const STORY_INTRO = [
+  { black:true,           text:['לפני 10 שנים…'] },
+  { img:'story_farewell', text:['ילד קטן התאמן כל יום עם הסנסיי שלו, ליד הבקתה שעל האגם.', 'הסנסיי: "הלהב לא נועד לנקמה. הוא נועד להגן."'] },
+  { img:'story_attack',   text:['ואז, בלילה אחד, מפלצת הצל ירדה מהשמיים.', 'הסנסיי נלחם… ונפל. הבוס של כל המפלצות הרג אותו מול העיניים שלי.'] },
+  { img:'story_grief',    text:['הצלחתי לברוח ליער. בכיתי עד הבוקר.', 'נשבעתי שלעולם לא אלמד אף אחד.'] },
+  { black:true,           text:['עברו 10 שנים'] },
+  { img:'cabin',          text:['הילד גדל. הוא גר לבד בבקתה, עם הלהב של הסנסיי.', 'טוק. טוק. טוק.'] },
+  { portrait:'hero',      text:['ילד קטן עמד בדלת: "אדוני, תלמד אותי להילחם במפלצות."', 'שברתי את השבועה. לימדתי אותו כל מה שהסנסיי לימד אותי.'] },
+  { scene:'hero',         text:['הילד הקטן: "המפלצות שהרגו את הסנסיי של הסנסיי שלי… הגיע הזמן לנקום."', 'לקח את הלהב, ויצא למסע.'] },
+];
+const STORY_MEET = [
+  { scene:'mountains', text:['בדרך, ליד הנהר, עמד זר עם שרביט וכובע מחודד.'] },
+  { scene:'mountains', text:['הקוסם: "המפלצות שרפו את המגדל שלי. אני מחפש אותן כבר שנה."'] },
+  { scene:'mountains', text:['אני: "גם אני. המפלצת של הצל הרגה את המורה של המורה שלי."'] },
+  { scene:'mountains', text:['הקוסם: "אז יש לנו אותו אויב. אבל לצל יש שתי דרכים, ואת שתיהן צריך לסגור."'] },
+];
+// הפרידה תלויה במי שבחרת לשחק: הדמות השנייה הולכת לדרך השנייה
+function storyParting(){
+  const other = save.character === 'hero' ? 'הקוסם' : 'הלוחם';
+  return [{ scene:'part', text:[other + ': "אוקיי, אני הולך בדרך השנייה – לכסח שם מפלצות חזקות בטירוף."', other + ': "ניפגש אצל הצל. אל תמות לפני זה."', 'ונשארתי לבד עם הדרך שלי.'] }];
+}
+const STORY_AFTER = {
+  1:['"זו הייתה רק ההתחלה", אמר הקוסם. הרוח שינתה כיוון – לכיוון ההרים.'],
+  2:['הלבה נרגעה. מבין הסדקים נשמע צחוק רחוק – הצל צוחק.'],
+  3:['החושך נסוג. אני זוכר את הבקתה, את הדלת, את הטוק־טוק.'],
+  4:['השדות שקטים שוב. הקוסם מצא שרביט ישן בין החיטה.'],
+  5:['מהפסגה רואים את המערה האחרונה. משהו זז שם למטה.'],
+  6:['המערות מאחורינו. לפנינו – רק הצל.'],
+  8:['השער נסגר מאחוריי. הצללים לוחשים: "החדר. לך לחדר."'],
+  9:['הקירות נעצרו. משהו זרם אל הנשק שלי – כאוס טהור.'],
+};
+const CUTSCENE_LINES = [
+  'תודה לכם… עולם הרוע השתלט עליי.',
+  'ששת הדרקונים שאחראים על כל היקום – גם עליהם הוא השתלט.',
+  'אתם חייבים להציל אותם. אם לא – העולם ייחרב, ולא יישאר בו דבר מלבד עפר וששת הדרקונים הרשעים.',
+  'קחו את הכוח שלי. מהיום אני נלחם לצידכם – לחצו Z כדי לזמן אותי.',
+  'והנשקים שלכם יזהרו באור. עכשיו – אל עולם הצללים.',
+];
+const STORY_UNIVERSE = [
+  { black:true, text:['בוס היקום נפל על ברכיו.', '"תודה. הרוע שלט גם בי. ששת הדרקונים חופשיים."'] },
+  { black:true, text:['"קח גם את הכוח שלי – לחץ V כדי לזמן אותי."', 'ואז האדמה נפערה, ונשאבתי למטה.'] },
+  { black:true, text:['עולם הרוע.', 'שם מחכה הבוס האמיתי.'] },
+];
+const STORY_END = [
+  { black:true, text:['השטן נפל.'] },
+  { black:true, text:['קול מתוך האור: "תודה רבה לך. מה אוכל לעשות בשבילך על שניצחת את השטן?"'] },
+  { black:true, text:['"תחזיר את הסנסיי של הסנסיי שלי."'] },
+  { img:'story_farewell', text:['ואור גדול מילא את העולם.'] },
+];
+const CREDITS = ['שבועת הלהב', 'OATH OF THE BLADE', '', '', 'יוצרים', 'בניה בן ציון', 'שחר', '', '', 'תודה ששיחקתם', '', '', 'המשחק נגמר', 'תחכו למשחק הבא (:'];
+const STORY_PORTAL = [
+  { black:true, text:['הצל נפל.'] },
+  { black:true, text:['אבל מאחוריו נפתח משהו… פורטל סודי.'] },
+  { black:true, text:['עולם הצללים ההפוך.', 'שם, ככל שאתה חלש יותר – אתה חזק יותר.'] },
+];
+
+// ---------- טעינת נכסים ----------
+const IMG = {};
+const toLoad = [];
+function need(key, src){ toLoad.push([key, src]); }
+(function registerAssets(){
+  for (const c of ['hero','wizard']) {
+    need(c+'_idle', `assets/characters/${c}/idle.png`);
+    for (let i=0;i<4;i++) need(`${c}_walk_${i}`, `assets/characters/${c}/walk_${i}.png`);
+  }
+  need('hero_portrait', 'assets/characters/hero/portrait_front.png');
+  need('wizard_portrait', 'assets/characters/wizard/portrait_front.png');
+  for (const el of ['water','fire','dark','nature','ice','blood','dragon']) {
+    for (let i=0;i<6;i++) need(`${el}_walk_${i}`, `assets/monsters/${el}/walk_${i}.png`);
+    need(`${el}_boss`, `assets/monsters/${el}/boss.png`);
+  }
+  need('shadow_boss', 'assets/monsters/shadow/boss.png');
+  need('devil_boss', 'assets/monsters/devil/boss.png');
+  for (const k in WEAPONS) { need('w_'+k, WEAPONS[k].icon); if (WEAPONS[k].arrow) need(WEAPONS[k].arrow, `assets/weapons/${WEAPONS[k].arrow}.png`); }
+  for (const s of ['cabin','story_attack','story_grief','story_farewell']) need('story_'+s, `assets/story/${s}.jpg`);
+  const RED = [0,5,14,53,81,86,91,95], BLUE = [0,7,16,40,72,79,86,91,95];
+  for (const p of RED)  need('bar_red_'+p,  `assets/ui/bars/bar_red_${String(p).padStart(3,'0')}.png`);
+  for (const p of BLUE) need('bar_blue_'+p, `assets/ui/bars/bar_blue_${String(p).padStart(3,'0')}.png`);
+})();
+const BAR_FRAMES = { red:[0,5,14,53,81,86,91,95], blue:[0,7,16,40,72,79,86,91,95] };
+let loadedCount = 0, loadErrors = [];
+function loadAll(cb){
+  let done = 0;
+  for (const [key, src] of toLoad) {
+    const im = new Image();
+    im.onload = () => { loadedCount++; if (++done === toLoad.length) cb(); };
+    im.onerror = () => { loadErrors.push(src); console.error('Missing asset:', src); if (++done === toLoad.length) cb(); };
+    im.src = src;
+    IMG[key] = im;
+  }
+}
+
+// ---------- קנבס ----------
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let viewScale = 1, viewOX = 0, viewOY = 0;
+function resize(){
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  viewScale = Math.min(canvas.width/LW, canvas.height/LH);
+  viewOX = (canvas.width - LW*viewScale)/2; viewOY = (canvas.height - LH*viewScale)/2;
+}
+window.addEventListener('resize', resize); resize();
+
+// ---------- קלט (עובד מיד, בלי לחיצה על המשחק) ----------
+const keys = {};
+const pressed = {};   // לחיצה בודדת
+// המקש הפיזי קובע (e.code), לא האות – כך X/C/E עובדים גם כשהמקלדת בעברית
+const CODE_KEYS = { KeyX:'x', KeyC:'c', KeyE:'e', KeyZ:'z', KeyV:'v', KeyT:'t', Space:' ', ArrowLeft:'arrowleft', ArrowRight:'arrowright', ArrowUp:'arrowup', ArrowDown:'arrowdown', Escape:'escape', Enter:'enter', NumpadEnter:'enter',
+  Digit1:'1', Digit2:'2', Digit3:'3', Digit4:'4', Digit5:'5', Digit6:'6' };
+function keyOf(e){ return CODE_KEYS[e.code] || e.key.toLowerCase(); }
+window.addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  const k = keyOf(e);
+  if (['arrowleft','arrowright','arrowup','arrowdown',' '].includes(k)) e.preventDefault();
+  if (!keys[k]) pressed[k] = true;
+  keys[k] = true;
+  if (k === 'escape') onEscape();
+});
+window.addEventListener('keyup', e => { keys[keyOf(e)] = false; });
+window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+// לחיצת עכבר: על כפתור הכוח = C, בכל מקום אחר (כולל כפתור התקיפה) = תקיפה
+const BTN_ATK = { x: LW-24-100, y: LH-24-100, w:100, h:100 };
+const BTN_SPEC = { x: LW-24-100-16-72, y: LH-24-72, w:72, h:72 };
+const BTN_SUM1 = { x: LW-24-100-16-72-16-72, y: LH-24-72, w:72, h:72 };      // זימון מלך הצללים (Z)
+const BTN_SUM2 = { x: LW-24-100-16-72-16-72-16-72, y: LH-24-72, w:72, h:72 }; // זימון בוס היקום (V)
+// כפתורי מגע (מוצגים במצב טלפון): שמאל/ימין, קפיצה, E, השהיה
+const TOUCH_BTNS = {
+  left:  { x:28,  y:LH-24-100, w:100, h:100, label:'◀', key:'arrowleft', hold:true },
+  right: { x:150, y:LH-24-100, w:100, h:100, label:'▶', key:'arrowright', hold:true },
+  jump:  { x:LW-24-100, y:LH-24-100-116, w:100, h:100, label:'▲', sub:'קפיצה', key:' ' },
+  use:   { x:LW-24-100-16-72, y:LH-24-72-116, w:72, h:72, label:'E', sub:'המשך', key:'e' },
+  pause: { x:LW-24-230-64, y:22, w:52, h:52, label:'❚❚', key:'escape' },
+};
+let mouseDownBtn = 0;
+const touchHeld = {};      // pointerId -> שם כפתור מוחזק (שמאל/ימין)
+const touchDown = {};      // כפתור -> כמה אצבעות מחזיקות אותו (לציור)
+function touchMode(){ return settings.touch === true || (settings.touch === 'auto' && ('ontouchstart' in window || navigator.maxTouchPoints > 0)); }
+function canvasPos(e){ return [(e.clientX - viewOX)/viewScale, (e.clientY - viewOY)/viewScale]; }
+const inBtn = (b, mx, my) => mx >= b.x && mx <= b.x+b.w && my >= b.y && my <= b.y+b.h;
+function pressBtn(name, id){
+  const b = TOUCH_BTNS[name];
+  if (b.hold) { touchHeld[id] = name; keys[b.key] = true; touchDown[name] = (touchDown[name]||0) + 1; }
+  else if (b.key === 'escape') onEscape();
+  else { pressed[b.key] = true; touchDown[name] = 3; }
+}
+function releaseHeld(id){
+  const name = touchHeld[id]; if (!name) return;
+  delete touchHeld[id]; touchDown[name] = Math.max(0, (touchDown[name]||1) - 1);
+  if (!Object.values(touchHeld).includes(name)) keys[TOUCH_BTNS[name].key] = false;
+}
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  e.preventDefault(); try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+  const [mx, my] = canvasPos(e);
+  if (state === 'story') { pressed['e'] = true; return; }
+  if (state === 'cutscene' || state === 'credits') { pressed['e'] = true; return; }
+  if (state !== 'play') return;
+  if (inBtn(BTN_SPEC, mx, my)) { pressed['c'] = true; mouseDownBtn = 2; return; }
+  if (save.summon1 && inBtn(BTN_SUM1, mx, my)) { pressed['z'] = true; mouseDownBtn = 3; return; }
+  if (save.summon2 && inBtn(BTN_SUM2, mx, my)) { pressed['v'] = true; mouseDownBtn = 4; return; }
+  if (inBtn(BTN_ATK, mx, my)) { pressed['x'] = true; mouseDownBtn = 1; return; }
+  if (touchMode()) { for (const name in TOUCH_BTNS) if (inBtn(TOUCH_BTNS[name], mx, my)) { pressBtn(name, e.pointerId); return; } return; }
+  pressed['x'] = true; mouseDownBtn = 1;     // בלי מצב מגע: לחיצה בכל מקום = תקיפה
+});
+canvas.addEventListener('pointermove', e => {
+  const name = touchHeld[e.pointerId]; if (!name) return;
+  const [mx, my] = canvasPos(e);
+  for (const other of ['left','right']) if (other !== name && inBtn(TOUCH_BTNS[other], mx, my)) { releaseHeld(e.pointerId); pressBtn(other, e.pointerId); }
+});
+for (const ev of ['pointerup','pointercancel']) canvas.addEventListener(ev, e => { mouseDownBtn = 0; releaseHeld(e.pointerId); });
+window.addEventListener('blur', () => { for (const id in touchHeld) releaseHeld(id); });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+function tap(k){ const v = pressed[k]; pressed[k] = false; return !!v; }
+
+// ---------- שמירה ----------
+let save = null;
+function defaultSave(){ return { version:4, level:1, character:'hero', line:{hero:null, wizard:'wand'}, coins:0, introSeen:false, inverted:false, armorLevel:0, hpLevel:0, medkits:0, white:false, summon1:false, summon2:false }; }
+// שריון קנוי: רמה 1 = +50 מגן, כל שדרוג מוסיף 10% מזה. armorLevel 0 = אין שריון
+const ARMOR_BUY = 250, ARMOR_BASE = 50;
+// מחיר השדרוג לפי כמה שדרוגים כבר נעשו: 50, אחרי 20 שדרוגים 100, אחרי 40 – 200, 60 – 300, 80 – 400, 100 ומעלה – 500
+function upgradeCost(level){ const n = Math.max(0, level - 1); return n < 20 ? 50 : n < 40 ? 100 : n < 60 ? 200 : n < 80 ? 300 : n < 100 ? 400 : 500; }
+function bonusArmor(){ const lv = save.armorLevel || 0; return lv > 0 ? Math.round(ARMOR_BASE * (1 + 0.1*(lv-1))) : 0; }
+// חיים קנויים: אותו מנגנון – רמה 1 = +50 חיים, כל שדרוג +10%
+function bonusHp(){ const lv = save.hpLevel || 0; return lv > 0 ? Math.round(ARMOR_BASE * (1 + 0.1*(lv-1))) : 0; }
+const MEDKIT_PRICE = 100;   // ערכת רפואה: "נסה שוב" אחרי מוות עולה ערכה אחת
+function loadSave(){ try { const s = JSON.parse(localStorage.getItem(SAVE_KEY)); if (s && s.version === 4) save = s; } catch(e){} if (!save) save = defaultSave(); }
+// פרופיל קבוע: היסטוריית ההריגות ודרגות הדרקון – לא נמחק ב"משחק חדש"
+let PROFILE_KEY = 'oath_profile_v1';
+// מצב בדיקה (לבדיקות אוטומטיות בלבד): עובר למפתחות שמירה נפרדים כדי לא לגעת בשמירה של השחקן
+window.__testMode = () => { SAVE_KEY = 'oath_save_test'; PROFILE_KEY = 'oath_profile_test'; save = defaultSave(); profile = { kills:{sword:0, bow:0, wand:0}, dragon:{sword:false, bow:false, wand:false}, chaos:{sword:false, bow:false, wand:false} }; return 'test mode'; };
+let profile = { kills:{sword:0, bow:0, wand:0}, dragon:{sword:false, bow:false, wand:false}, chaos:{sword:false, bow:false, wand:false} };
+function loadProfile(){ try { const p = JSON.parse(localStorage.getItem(PROFILE_KEY)); if (p && p.kills && p.dragon) profile = p; } catch(e){} if (!profile.chaos) profile.chaos = {sword:false, bow:false, wand:false}; }
+// מזהה שחקן: מספר (1 = היוצר) + קוד ייחודי. נוצר פעם אחת ונשמר בפרופיל.
+const CREATOR_NAME = 'בניה';   // השחקן הראשון – היוצר. אם השם שהוקלד תואם, המספר הוא 1
+function makePlayerCode(){ const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i=0;i<6;i++) c += chars[Math.floor(Math.random()*chars.length)]; return c; }
+function ensurePlayerId(){ if (!profile.code) { profile.code = makePlayerCode(); writeProfile(); } }
+function playerNumber(){ return profile.creator ? 1 : null; }
+// קוד היוצר נשמר בקוד רק כ-hash (SHA-256) – אי אפשר לקרוא ממנו את הקוד עצמו
+const CREATOR_PIN_HASH = '8ea8eb612f9362da9d2b8ae0a65daa6410c9c952a4944933a8ad17aee8f86939';
+function sha256(str){
+  const K = [0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = new TextEncoder().encode(str); const l = bytes.length; const padLen = ((l + 9 + 63) >> 6) << 6;
+  const m = new Uint8Array(padLen); m.set(bytes); m[l] = 0x80; const dv = new DataView(m.buffer); dv.setUint32(padLen - 4, l * 8 >>> 0); dv.setUint32(padLen - 8, Math.floor(l * 8 / 4294967296));
+  let H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]; const w = new Uint32Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let i = 0; i < padLen; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t*4);
+    for (let t = 16; t < 64; t++) { const s0 = rotr(w[t-15],7) ^ rotr(w[t-15],18) ^ (w[t-15] >>> 3), s1 = rotr(w[t-2],17) ^ rotr(w[t-2],19) ^ (w[t-2] >>> 10); w[t] = (w[t-16] + s0 + w[t-7] + s1) >>> 0; }
+    let [a,b,c,d,e,f,g,h] = H;
+    for (let t = 0; t < 64; t++) { const S1 = rotr(e,6) ^ rotr(e,11) ^ rotr(e,25), ch = (e & f) ^ (~e & g), t1 = (h + S1 + ch + K[t] + w[t]) >>> 0, S0 = rotr(a,2) ^ rotr(a,13) ^ rotr(a,22), maj = (a & b) ^ (a & c) ^ (b & c), t2 = (S0 + maj) >>> 0; h = g; g = f; f = e; e = (d + t1) >>> 0; d = c; c = b; b = a; a = (t1 + t2) >>> 0; }
+    H = H.map((v, i) => (v + [a,b,c,d,e,f,g,h][i]) >>> 0);
+  }
+  return H.map(v => v.toString(16).padStart(8, '0')).join('');
+}
+function isCreatorName(v){ return v.trim() === CREATOR_NAME; }
+function cheats(){ return profile.creator ? (profile.cheats || (profile.cheats = { god:false, inf:false })) : { god:false, inf:false }; }
+function playerIdText(){ const n = playerNumber(); return (profile.name || 'שחקן') + ' · מזהה ' + (n ? '#' + n + (n === 1 ? ' (היוצר)' : '') + ' · ' : '') + profile.code; }
+function openNameScreen(){ state = 'name'; $('playerName').value = profile.name || ''; showOverlay('nameScreen'); setTimeout(() => $('playerName').focus(), 50); }
+function confirmName(){
+  const v = $('playerName').value.trim(); if (!v) { $('playerName').focus(); return; }
+  $('nameError').textContent = '';
+  if (isCreatorName(v)) {                       // השם "בניה" שמור ליוצר – צריך את קוד היוצר
+    const pin = $('creatorPin').value.trim();
+    if (!pin) { $('creatorPinRow').style.display = ''; $('creatorPin').focus(); return; }
+    if (sha256(pin) !== CREATOR_PIN_HASH) { $('nameError').style.color = '#f66'; $('nameError').textContent = 'קוד היוצר לא נכון. השם "' + CREATOR_NAME + '" שמור ליוצר – בחר שם אחר.'; $('creatorPin').value = ''; return; }
+    profile.creator = true;
+  } else profile.creator = false;
+  profile.name = v; ensurePlayerId(); writeProfile(); gotoLobby();
+}
+function writeProfile(){ try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch(e){} }
+function writeSave(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch(e){} }
+function hasSave(){ try { return !!localStorage.getItem(SAVE_KEY); } catch(e){ return false; } }
+function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e){} save = defaultSave(); }
+
+// ---------- מצב משחק ----------
+let state = 'loading';    // loading | lobby | story | play | pause | gameover | victory
+let stateT = 0;
+const $ = id => document.getElementById(id);
+function showOverlay(id){ for (const o of document.querySelectorAll('.overlay')) o.classList.remove('show'); if (id) $(id).classList.add('show'); }
+
+// ---------- לובי ----------
+function gotoLobby(){
+  if (!profile.name) { openNameScreen(); return; }     // בפעם הראשונה: שם + מזהה
+  state = 'lobby'; stateT = 0;
+  $('lobby').style.backgroundImage = 'url(assets/story/cabin.jpg)';
+  const has = hasSave() && save.introSeen;
+  $('creatorBadge').style.display = profile.creator ? '' : 'none';
+  $('btnStart').style.display = has ? 'none' : '';
+  $('btnContinue').style.display = has ? '' : 'none';
+  $('btnNew').style.display = has ? '' : 'none';
+  if (!save.character) save.character = 'hero';
+  updateLobbyChar(0);
+  showOverlay('lobby');
+}
+// הדמות בלובי: מסתכלת לכיוון העכבר (הציורים: קדימה / ימין / שמאל), לחיצה מחליפה דמות
+function updateLobbyChar(dir){
+  const c = save.character, img = $('lobbyCharImg');
+  if (c === 'hero') { img.src = dir > 0 ? 'assets/characters/hero/portrait_right.png' : dir < 0 ? 'assets/characters/hero/portrait_left.png' : 'assets/characters/hero/portrait_front.png'; img.style.transform = ''; }
+  else { img.src = 'assets/characters/wizard/portrait_front.png'; img.style.transform = dir < 0 ? 'scaleX(-1)' : ''; }
+  $('lobbyCharName').textContent = CHARACTERS[c].name;
+}
+$('lobby').addEventListener('mousemove', e => {
+  if (state !== 'lobby') return;
+  const r = $('lobbyCharImg').getBoundingClientRect(); const cx = r.left + r.width/2;
+  const dir = e.clientX > cx + 70 ? 1 : e.clientX < cx - 70 ? -1 : 0;
+  if (dir !== lobbyDir) { lobbyDir = dir; updateLobbyChar(dir); }
+});
+let lobbyDir = 0;
+function swapCharacter(){
+  save.character = save.character === 'hero' ? 'wizard' : 'hero'; writeSave(); updateLobbyChar(lobbyDir);
+  if (save.character === 'hero') openLineSelect(true);     // לוחם: בוחרים חרב או קשת בכל החלפה
+}
+$('lobbyChar').onclick = $('btnSwap').onclick = swapCharacter;
+let lineSelectToLobby = false;
+function openLineSelect(toLobby){ lineSelectToLobby = !!toLobby; state = 'lineselect'; showOverlay('lineSelect'); }
+$('btnStart').onclick = () => { startNewGame(); };
+$('btnContinue').onclick = () => { continueGame(); };
+$('btnNew').onclick = () => { const c = save.character; clearSave(); save.character = c; startNewGame(); };
+$('btnShop').onclick = () => { openShop(); };
+$('btnShopClose').onclick = $('btnShopClose2').onclick = () => { showOverlay('lobby'); state = 'lobby'; };
+$('btnResume').onclick = () => { resumeGame(); };
+$('btnToLobby').onclick = () => { writeSave(); gotoLobby(); };
+// "נסה שוב" צורך ערכת רפואה אחת; בלי ערכות – קונים במקום (100) או חוזרים ללובי
+function refreshGameover(){
+  const n = save.medkits || 0;
+  $('medkitInfo').innerHTML = n > 0 ? `ערכות רפואה: <b style="color:#8dffb0">${n}</b> · "נסה שוב" ישתמש באחת` : `<span style="color:#f88">אין ערכות רפואה</span> · מטבעות: ${save.coins}`;
+  $('btnRetry').disabled = n === 0; $('btnRetry').style.opacity = n === 0 ? .4 : 1;
+  $('btnBuyMedkit').style.display = (n === 0 && save.coins >= MEDKIT_PRICE) ? '' : 'none';
+}
+$('btnRetry').onclick = () => { if ((save.medkits || 0) <= 0) return; save.medkits--; writeSave(); startLevel(save.level); };
+$('btnBuyMedkit').onclick = () => { if (save.coins >= MEDKIT_PRICE) { save.coins -= MEDKIT_PRICE; save.medkits = (save.medkits || 0) + 1; writeSave(); refreshGameover(); } };
+$('btnGoLobby').onclick = () => { gotoLobby(); };
+$('btnVicLobby').onclick = () => { gotoLobby(); };
+for (const c of document.querySelectorAll('[data-line]')) c.onclick = () => { save.line.hero = c.dataset.line; writeSave(); if (lineSelectToLobby) gotoLobby(); else startLevel(save.level); };
+
+function openShop(){
+  state = 'shop';
+  $('shopCoins').textContent = 'מטבעות: ' + save.coins;
+  const box = $('shopItems'); box.innerHTML = '';
+  const ch = save.character || 'hero';
+  const total = totalKills();
+  const head = document.createElement('div'); head.style.cssText = 'font-size:16px;opacity:.9;margin-bottom:10px;line-height:1.5';
+  head.innerHTML = `הנשקים מתחזקים לבד: <b>${UPGRADE_KILLS} הריגות עם הנשק</b> = דרגה 2 · ניצחון על הדרקון = דרגת הדרקון · הפורטל הסודי = דרגת הוויד · החדר המתכווץ = נשק הכאוס<br>` +
+    `סך ההריגות: <b style="color:#ffd766">${total}</b> (חרב ${profile.kills.sword} · חץ וקשת ${profile.kills.bow} · שרביט ${profile.kills.wand})`;
+  box.appendChild(head);
+  for (const ln of ['sword','bow','wand']) {
+    const line = LINES[ln];
+    const owner = ln === 'wand' ? 'wizard' : 'hero';
+    const active = owner === ch && lineOf(ch) === ln;
+    const tier = tierOfLine(ln);
+    const title = document.createElement('div'); title.style.cssText = 'font-size:20px;font-weight:bold;margin:12px 0 2px;color:' + (active ? '#ffd766' : '#fff');
+    title.textContent = `${line.name} (${CHARACTERS[owner].name}) · הריגות עם ${line.name}: ${profile.kills[ln]}` + (active ? ' · בשימוש' : '');
+    box.appendChild(title);
+    line.tiers.forEach((id, i) => {
+      const w = WEAPONS[id];
+      const have = i <= tier;
+      const how = i === 1 ? `${UPGRADE_KILLS} הריגות עם ${line.name} (${Math.min(killsOf(ln), UPGRADE_KILLS)}/${UPGRADE_KILLS})` : i === 2 ? 'ניצחון על הדרקון הסגול (שלב 2) עם ' + line.name : i === 3 ? 'כניסה לפורטל הסודי אחרי מפלצת הצל (משתדרג אוטומטית בעולם ההפוך)' : i === 4 ? 'שרידה 60 שניות בחדר המתכווץ של העולם ההפוך עם ' + line.name : 'ניצחון על מלך הצללים – הוא מצטרף אליכם ומלבין את הנשקים';
+      const row = document.createElement('div'); row.className = 'item' + (have ? '' : ' locked');
+      row.innerHTML = `<img src="${w.icon}" alt="" style="object-fit:contain"><div class="name">${w.name}<div class="tier">נזק ${w.dmg} · ${w.attackName} · כוח: ${w.special.name}</div></div>` +
+        `<div class="price">${have ? (i === tier ? 'פתוח – בשימוש' : 'פתוח') : 'נפתח ב: ' + how}</div>`;
+      box.appendChild(row);
+    });
+  }
+  // ---- שריון וחיים לקנייה: קנייה 250, שדרוג 50 (+10%) שמתייקר כל 20 שדרוגים עד 500, בלי הגבלה ----
+  const sect = (txt, color) => { const d = document.createElement('div'); d.style.cssText = 'font-size:20px;font-weight:bold;margin:16px 0 2px;color:' + color; d.textContent = txt; box.appendChild(d); };
+  const buyRow = (icon, name, desc, price, btnText, onBuy) => {
+    const row = document.createElement('div'); row.className = 'item';
+    row.innerHTML = `<div style="width:64px;height:64px;font-size:44px;text-align:center;line-height:64px;background:#111;border-radius:6px">${icon}</div><div class="name">${name}<div class="tier">${desc}</div></div><div class="price">${price} מטבעות</div><button class="btn small">${btnText}</button>`;
+    const btn = row.querySelector('button');
+    if (save.coins < price) { btn.disabled = true; btn.style.opacity = .4; btn.title = 'אין מספיק מטבעות'; }
+    btn.onclick = () => { if (save.coins >= price) { save.coins -= price; onBuy(); writeSave(); openShop(); } };
+    box.appendChild(row);
+  };
+  const upgradeRow = (icon, label, key, meter, color) => {
+    const lv = save[key] || 0, cur = lv > 0 ? Math.round(ARMOR_BASE * (1 + 0.1*(lv-1))) : 0, next = Math.round(ARMOR_BASE * (1 + 0.1*lv));
+    sect(label, color);
+    buyRow(icon, lv === 0 ? label : label + ' – רמה ' + lv,
+      lv === 0 ? 'מוסיף +' + ARMOR_BASE + ' ל' + meter : meter + ' נוסף כרגע: +' + cur + ' · אחרי השדרוג: +' + next + ' (10% יותר)',
+      lv === 0 ? ARMOR_BUY : upgradeCost(lv), lv === 0 ? 'קנה' : 'שדרג', () => { save[key] = lv + 1; });
+  };
+  upgradeRow('🛡', 'שריון', 'armorLevel', 'מד המגן (סופג נזק לפני החיים, מתמלא בכל שלב)', '#7fd4ff');
+  upgradeRow('❤', 'חיים', 'hpLevel', 'מד החיים', '#ff6b8a');
+  sect('ערכות רפואה', '#8dffb0');
+  buyRow('⛑', 'ערכת רפואה', 'כל "נסה שוב" אחרי מוות עולה ערכה אחת · יש לך: ' + (save.medkits || 0), MEDKIT_PRICE, 'קנה', () => { save.medkits = (save.medkits || 0) + 1; });
+  showOverlay('shop');
+}
+
+function startNewGame(){
+  const c = save.character || 'hero';
+  save = defaultSave(); save.character = c;
+  writeSave();
+  runStory(STORY_INTRO, () => runStory(STORY_MEET.concat(storyParting()), () => { save.introSeen = true; writeSave(); beginJourney(); }));
+}
+function continueGame(){ beginJourney(); }
+// לוחם בוחר חרב או קשת לפני היציאה למסע
+function beginJourney(){
+  if (save.character === 'hero' && !save.line.hero) openLineSelect(false);
+  else startLevel(save.level);
+}
+
+// ---------- מסכי סיפור (על הקנבס) ----------
+let story = null;
+function runStory(slides, onDone){
+  showOverlay(null);
+  state = 'story';
+  story = { slides, i:0, line:0, t:0, onDone, char:0 };
+}
+function storyAdvance(){
+  const s = story.slides[story.i];
+  if (story.line < s.text.length-1) { story.line++; story.t = 0; return; }
+  story.i++; story.line = 0; story.t = 0;
+  if (story.i >= story.slides.length) { const cb = story.onDone; story = null; cb(); }
+}
+function updateStory(dt){
+  story.t += dt;
+  if (tap('e') || tap(' ') || tap('enter') || tap('x')) storyAdvance();
+}
+function drawStory(){
+  const s = story.slides[story.i];
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,LW,LH);
+  if (s.black) {
+    // מסך שחור עם טקסט גדול במרכז
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 64px "Segoe UI", Arial'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.globalAlpha = Math.min(1, story.t*1.2); ctx.fillText(s.text[story.line], LW/2, LH/2-60); ctx.globalAlpha = 1;
+  } else if (s.img) {
+    const im = IMG['story_'+s.img];
+    if (im && im.complete && im.naturalWidth) {
+      // מתאימים לגובה, ממרכזים, זום איטי
+      const z = 1 + Math.min(story.t*0.01, 0.06);
+      const sc = Math.max(LW/im.naturalWidth, (LH-140)/im.naturalHeight) * z;
+      const w = im.naturalWidth*sc, h = im.naturalHeight*sc;
+      ctx.save(); ctx.beginPath(); ctx.rect(0,0,LW,LH-140); ctx.clip();
+      ctx.drawImage(im, (LW-w)/2, (LH-140-h)/2, w, h); ctx.restore();
+    }
+  } else if (s.portrait) {
+    // דיוקן הדמות על רקע כהה
+    const im = IMG[s.portrait+'_portrait'];
+    if (im && im.naturalWidth) { const h = LH-180, w = im.naturalWidth*h/im.naturalHeight; ctx.drawImage(im, (LW-w)/2, 20, w, h); }
+  } else if (s.scene) {
+    // סצנה על רקע הרים: הגיבור (ובמפגש – גם הקוסם)
+    drawBackground('mountains', 0, 1, 0);
+    // שביל עפר שהדמויות הולכות עליו
+    ctx.fillStyle = '#8a5a2b'; ctx.beginPath(); ctx.moveTo(0, GROUND_Y-150); ctx.lineTo(LW, GROUND_Y-150); ctx.lineTo(LW, GROUND_Y-100); ctx.lineTo(0, GROUND_Y-100); ctx.fill();
+    ctx.fillStyle = '#a9743a'; ctx.fillRect(0, GROUND_Y-146, LW, 8);
+    ctx.fillStyle = '#6e4620'; for (let i=0;i<40;i++) { const px = (i*97 + Math.floor(story.t*120)) % (LW+40) - 20; ctx.beginPath(); ctx.ellipse(px, GROUND_Y-125 + (i%3)*8, 7, 3, 0, 0, Math.PI*2); ctx.fill(); }
+    ctx.save(); ctx.translate(0, -140);
+    if (s.scene === 'part') {
+      // פרידה: הדמות השנייה הולכת שמאלה ונעלמת, הדמות שלך נשארת
+      const me = save.character, other = me === 'hero' ? 'wizard' : 'hero';
+      const gone = Math.max(0, story.t - 1.2), ox = 560 - gone*180;
+      drawCharacterSprite(me, 'idle', 760, GROUND_Y, -1, 190);
+      if (ox > -200) drawCharacterSprite(other, gone > 0 ? 'walk_' + (Math.floor(story.t*6)%4) : 'idle', ox, GROUND_Y, gone > 0 ? -1 : 1, 190);
+    } else {
+      drawCharacterSprite('hero', 'walk_' + (Math.floor(story.t*6)%4), s.scene === 'hero' ? 560 : 480, GROUND_Y, 1, 190);
+      if (s.scene !== 'hero') drawCharacterSprite('wizard', 'idle', 800, GROUND_Y, -1, 190);
+    }
+    ctx.restore();
+  }
+  // פס טקסט
+  ctx.fillStyle = '#000'; ctx.fillRect(0, LH-140, LW, 140);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 30px "Segoe UI", Arial'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+  const line = s.text[story.line];
+  const shown = line.slice(0, Math.floor(story.t*40));
+  if (!s.black) ctx.fillText(shown, LW/2, LH-75);
+  ctx.font = '16px "Segoe UI", Arial'; ctx.fillStyle = '#aaa';
+  if (Math.floor(story.t*2)%2===0) ctx.fillText('E / רווח – המשך', LW/2, LH-25);
+}
+
+// ---------- העולם ----------
+let level = null, player = null, companion = null, enemies = [], projectiles = [], effects = [], coins = [], texts = [];
+let cam = { x:640, zoom:1, shake:0 };
+
+function startLevel(n, opts){
+  opts = opts || {};
+  const def = LEVELS[n-1];
+  if (!def) { gotoLobby(); return; }
+  showOverlay(null);
+  const c = CHARACTERS[save.character];
+  const isFinal = !!(def.finalBoss || def.bossOnly);
+  level = {
+    def, n, element: opts.dragon ? 'dragon' : def.element,
+    segments: opts.dragon ? [] : def.segments, bossBg: opts.dragon ? 'cave' : def.bossBg,
+    width: isFinal || opts.dragon ? 1800 : 3800, bossStart: isFinal || opts.dragon ? 0 : 3800, bossWidth: 1800,
+    inBoss: isFinal || opts.dragon || !!def.survive, bossSpawned:false, boss:null, done:false, killed:0, t:0, dragon: !!opts.dragon,
+    fork: (!opts.dragon && def.fork) || 0, portal:null,
+    survive: def.survive ? { total:def.survive, left:60, right:1740, spawnT:2.5, done:false } : null,
+  };
+  if (def.survive) { level.width = 1800; level.bossStart = 0; }
+  level.total = level.width + (level.inBoss ? 0 : level.bossWidth);
+  const maxHp = c.hp + bonusHp();
+  player = {
+    x: 200, y: 0, vx:0, vy:0, w:60, h:c.h, grounded:true, facing:1,
+    hp:maxHp, maxHp, armor:c.armor + bonusArmor(), maxArmor:c.armor + bonusArmor(), speed:c.speed, jumpV:c.jump,
+    char: save.character, weapon: currentWeaponId(save.character),
+    atkT:0, cdT:0, bowT:0, specT:0, specCd:0, sumCd1:0, sumCd2:0, hurtT:0, invT:0, slowT:0, dead:false, anim:0, hits:new Set(),
+    hpShow:maxHp, hpGhost:maxHp, armorShow:c.armor + bonusArmor(), armorGhost:c.armor + bonusArmor(),
+  };
+  const other = save.character === 'hero' ? 'wizard' : 'hero';
+  companion = null;   // בן הלוויה הלך בדרך השנייה (פרידה בסיפור)
+  enemies = []; projectiles = []; effects = []; coins = []; texts = [];
+  cam = { x:640, zoom:1, shake:0 };
+  // מפזרים אויבים רגילים
+  if (!level.inBoss) {
+    // מיני־מפלצות מכל היסודות בכל המפה (חצי מהיסוד של השלב, השאר אקראי)
+    const st = miniStats(n);
+    for (let i=0;i<def.enemies;i++) {
+      const x = 800 + i*((level.width-1200)/def.enemies) + Math.random()*120;
+      const el = Math.random() < 0.5 ? def.element : MINI_ELEMENTS[Math.floor(Math.random()*MINI_ELEMENTS.length)];
+      enemies.push(makeEnemy(el, x, st, false));
+    }
+  } else if (!level.survive) {
+    spawnBoss();
+  }
+  state = 'play'; stateT = 0;
+  banner(def.title + (opts.dragon ? ' – מאורת הדרקון' : ''), opts.dragon ? 'הדרקון הסגול מתעורר…' : def.intro, 4.5);
+}
+
+// רמת קושי: מכפיל חיים למפלצות ולבוסים
+function difficultyHpMult(){ return settings.difficulty === 'easy' ? 0.5 : settings.difficulty === 'hard' ? 1.5 : 1; }
+function makeEnemy(el, x, st, isBoss){
+  const boss = !!isBoss;
+  const hp = Math.round(st.hp * difficultyHpMult());
+  return {
+    el, x, y:0, vx:0, vy:0, boss, hp, maxHp:hp, dmg:st.dmg, speed:st.speed,
+    w: boss ? (el==='devil' ? 360 : 300) : 90, h: boss ? (el==='devil' ? 560 : el==='universe' ? 520 : el==='shadow' ? 470 : (el==='dragon' ? 340 : 380)) : 105,
+    facing:-1, state:'idle', atkT:0, windT:0, specT: boss ? 3 : 0, hurtT:0, anim:Math.random()*10, stunT:0, dead:false, alpha:1,
+    range: boss ? 170 : 75, atkCd: boss ? 1.0 : 1.5, hover: el==='dark' || el==='blood' || el==='shadow',
+  };
+}
+function spawnBoss(){
+  const el = level.element;
+  const st = bossStats(level.n, el);
+  const bx = (level.inBoss ? 0 : level.bossStart) + 1300;
+  const b = makeEnemy(el, bx, st, true);
+  b.facing = -1;
+  level.boss = b; level.bossSpawned = true;
+  enemies.push(b);
+  effects.push({ type:'ring', x:bx, y:-120, r:10, maxR:420, t:0, life:0.9, color:ELEMENTS[el].color });
+  if (level.def.bossTitle) b.title = level.def.bossTitle;
+  banner(b.title || ELEMENTS[el].name, level.def.bossTitle ? 'הסוף האמיתי' : el==='shadow' ? 'המפלצת שהרגה את המורה של המורה שלי' : 'בוס ' + level.def.title.split('–')[0].trim(), 3);
+}
+
+// ---------- הודעות/באנרים ----------
+let bannerObj = null;
+function banner(title, sub, life){ bannerObj = { title, sub, t:0, life }; }
+function floatText(x, y, s, color){ texts.push({ x, y, s, color:color||'#fff', t:0, life:0.9 }); }
+
+// ---------- עדכון ----------
+let last = performance.now();
+function tick(dt){
+  stateT += dt;
+  try {
+    if (state === 'story') updateStory(dt);
+    else if (state === 'cutscene') updateCutscene(dt);
+    else if (state === 'credits') updateCredits(dt);
+    else if (state === 'play') updatePlay(dt);
+    render();
+  } catch (e) { showErr(e); }
+  for (const k in pressed) pressed[k] = false;
+}
+function loop(now){
+  const dt = Math.min(0.05, (now-last)/1000); last = now;
+  tick(dt);
+  requestAnimationFrame(loop);
+}
+// עזר לבדיקות אוטומטיות: מריץ n פריימים של dt שניות
+window.__tick = (dt, n) => { for (let i=0;i<(n||1);i++) tick(dt||1/60); };
+function showErr(e){ const el = $('err'); el.style.display='block'; el.textContent = String(e.stack||e); console.error(e); }
+
+function onEscape(){
+  if (state === 'play') { state = 'pause'; showOverlay('pause'); }
+  else if (state === 'pause') resumeGame();
+  else if (state === 'shop') { showOverlay('lobby'); state = 'lobby'; }
+  else if (state === 'settings') $('btnSettingsClose').click();
+  else if (state === 'story') { storyAdvance(); }
+  else if (state === 'cutscene' || state === 'credits') { pressed['e'] = true; }
+}
+function resumeGame(){ showOverlay(null); state = 'play'; }
+
+// ---------- הסצנה: מלך הצללים נסדק, אור לבן פורץ, והוא חוזר לבן ומדבר ----------
+let cut = null;
+function startCutscene(){ state = 'cutscene'; cut = { t:0, line:0, lineT:0 }; showOverlay(null); }
+function updateCutscene(dt){
+  cut.t += dt; cut.lineT += dt;
+  if (cut.t > 7 && (tap('e') || tap(' ') || tap('x') || tap('enter'))) {
+    cut.line++; cut.lineT = 0;
+    if (cut.line >= CUTSCENE_LINES.length) { cut = null; save.white = true; save.summon1 = true; save.level = 11; writeSave(); startLevel(11); }
+  }
+}
+function drawCutscene(){
+  const t = cut.t;
+  const white = Math.max(0, Math.min(1, (t - 5.5) / 1.0));           // 5.5–6.5: המסך מתמלא בלבן
+  drawBackground('void', 0, 1, t);
+  const im = IMG['shadow_boss']; if (!im || !im.naturalWidth) return;
+  const h = 460, w = im.naturalWidth*h/im.naturalHeight, cx = LW/2, cy = GROUND_Y - 40;
+  const shake = t < 5.5 ? (Math.random()-0.5)*Math.min(14, t*4) : 0;
+  ctx.save(); ctx.translate(cx + shake, cy + shake*0.5);
+  if (t >= 6.5) { ctx.filter = 'grayscale(1) brightness(2.8)'; ctx.shadowColor = '#fff'; ctx.shadowBlur = 60; }
+  else { ctx.shadowColor = '#c040ff'; ctx.shadowBlur = 40; }
+  ctx.drawImage(im, -w/2, -h, w, h);
+  ctx.filter = 'none';
+  // סדקים עם אור לבן מתחתיהם (2.5–6.5 שניות)
+  if (t > 2.5 && t < 6.5) {
+    const n = Math.min(26, Math.floor((t - 2.5) * 8));
+    ctx.globalCompositeOperation = 'source-atop';
+    for (let i=0;i<n;i++) {
+      let x = ((i*97) % 200) - 100, y = -h*0.15 - ((i*61) % (h*0.7));
+      const seed = i*13.7;
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2 + (i%3); ctx.shadowColor = '#fff'; ctx.shadowBlur = 24;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      for (let k=1;k<=6;k++) { x += Math.sin(seed + k*2.1)*34; y += 22 + Math.cos(seed + k)*12; ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  ctx.restore();
+  // הבועה: "לא… לא… זה לא יכול לקרות!"
+  if (t > 0.6 && t < 5.5) speechBubble(cx + 40, cy - h - 30, 'לא… לא… זה לא יכול לקרות!', '#1a0533', '#fff');
+  if (white > 0) { ctx.fillStyle = `rgba(255,255,255,${t >= 6.5 ? 1 : white})`; ctx.fillRect(0, 0, LW, LH); }
+  if (t >= 6.5) {
+    // אחרי ההתלבנות: רקע לבן, הבוס הלבן, והדיאלוג
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, LW, LH);
+    const g = ctx.createRadialGradient(cx, cy - h*0.5, 50, cx, cy - h*0.5, 520); g.addColorStop(0, 'rgba(220,235,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, LW, LH);
+    ctx.save(); ctx.translate(cx, cy + Math.sin(t*1.5)*8); ctx.filter = 'grayscale(1) brightness(2.6) contrast(0.9)'; ctx.shadowColor = '#9ad0ff'; ctx.shadowBlur = 70; ctx.drawImage(im, -w/2, -h, w, h); ctx.restore();
+    if (t > 7) {
+      const line = CUTSCENE_LINES[Math.min(cut.line, CUTSCENE_LINES.length-1)];
+      ctx.fillStyle = 'rgba(0,0,0,.85)'; ctx.fillRect(0, LH-150, LW, 150);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 26px "Segoe UI", Arial'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+      ctx.fillText(line.slice(0, Math.floor(cut.lineT*40)), LW/2, LH-80);
+      ctx.font = '16px "Segoe UI", Arial'; ctx.fillStyle = '#aaa'; if (Math.floor(t*2)%2===0) ctx.fillText('E / רווח – המשך', LW/2, LH-28);
+    }
+  }
+}
+function speechBubble(x, y, txt, bg, fg){
+  ctx.save(); ctx.font = 'bold 24px "Segoe UI", Arial'; ctx.direction = 'rtl'; ctx.textAlign = 'center';
+  const w = ctx.measureText(txt).width + 44, h = 54;
+  ctx.fillStyle = bg; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(x - w/2, y - h, w, h, 14); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 20, y); ctx.lineTo(x - 40, y + 26); ctx.lineTo(x + 4, y); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = fg; ctx.fillText(txt, x, y - 18); ctx.restore();
+}
+// ---------- קרדיטים ----------
+let credits = null;
+function startCredits(){ state = 'credits'; credits = { t:0 }; showOverlay(null); }
+function updateCredits(dt){
+  credits.t += dt;
+  if (credits.t > 16 || (credits.t > 2 && (tap('e') || tap(' ') || tap('enter')))) { credits = null; state = 'victory'; showOverlay('victory'); }
+}
+function drawCredits(){
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, LW, LH);
+  ctx.fillStyle = '#fff'; for (let i=0;i<80;i++) { const sx = (i*173)%LW, sy = (i*97 + credits.t*12)%LH; ctx.globalAlpha = 0.3 + 0.7*Math.abs(Math.sin(credits.t + i)); ctx.fillRect(sx, sy, 2, 2); } ctx.globalAlpha = 1;
+  ctx.textAlign = 'center'; ctx.direction = 'rtl';
+  const y0 = LH + 40 - credits.t*60;
+  CREDITS.forEach((line, i) => {
+    const y = y0 + i*54; if (y < -40 || y > LH + 40) return;
+    const big = i === 0 || i === CREDITS.length-1 || line === 'יוצרים';
+    ctx.fillStyle = i === 0 ? '#ffd766' : line === 'יוצרים' ? '#9ad0ff' : '#fff';
+    ctx.font = (big ? 'bold 44px' : '28px') + ' "Segoe UI", Arial';
+    ctx.fillText(line, LW/2, y);
+  });
+}
+// ---------- רעיונות ליוצרים: נפתחת הודעת מייל מוכנה ליוצרים ----------
+const CREATOR_EMAIL = 'benzionbenaya4@gmail.com';   // לכאן נשלחים הרעיונות
+function sendIdea(text){
+  const body = (text || '').trim();
+  if (!body) return false;
+  const subject = 'רעיון למשחק שבועת הלהב';
+  const info = '(מאת: ' + playerIdText() + ' · ' + CHARACTERS[save.character || 'hero'].name + ', שלב ' + save.level + ')';
+  window.location.href = 'mailto:' + CREATOR_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body + '\n\n' + info);
+  return true;
+}
+$('btnIdeaEnd').onclick = () => { if (sendIdea($('ideaEnd').value)) { $('btnIdeaEnd').textContent = 'נפתחה הודעת מייל – לחצו שם "שלח"'; } };
+$('btnIdeaSettings').onclick = () => { if (sendIdea($('ideaSettings').value)) { $('btnIdeaSettings').textContent = 'נפתחה הודעת מייל – לחצו שם "שלח"'; setTimeout(() => $('btnIdeaSettings').textContent = 'שלח רעיון ליוצרים', 5000); } };
+function updatePlay(dt){
+  level.t += dt;
+  if (bannerObj) { bannerObj.t += dt; if (bannerObj.t > bannerObj.life) bannerObj = null; }
+  updatePlayer(dt);
+  if (companion) updateCompanion(dt);
+  for (const e of enemies) updateEnemy(e, dt);
+  enemies = enemies.filter(e => !(e.dead && e.alpha <= 0));
+  updateProjectiles(dt);
+  updateEffects(dt);
+  updateCoins(dt);
+  for (const t of texts) { t.t += dt; t.y -= 60*dt; }
+  texts = texts.filter(t => t.t < t.life);
+  updateCamera(dt);
+  // פיצול בשלב 2: ליד שער הדרקון לוחצים E כדי להיכנס למאורה
+  if (level.fork && !profile.dragon[lineOf(save.character)] && Math.abs(player.x - level.fork) < 110 && tap('e')) {
+    startLevel(level.n, { dragon:true }); return;
+  }
+  // פורטל סודי אחרי מפלצת הצל – E כדי להיכנס לעולם ההפוך
+  if (level.portal) {
+    level.portal.t += dt;
+    if (Math.abs(player.x - level.portal.x) < 130 && tap('e')) { enterInvertedWorld(); return; }
+  }
+  // החדר המתכווץ: הקירות מתקרבים, מפלצות מופיעות, צריך לשרוד
+  if (level.survive) updateSurvive(dt);
+  // כניסה לזירת הבוס
+  if (!level.inBoss && player.x > level.bossStart + 150) {
+    level.inBoss = true;
+    if (!level.bossSpawned) spawnBoss();
+  }
+  // סיום שלב
+  if (level.boss && level.boss.dead && !level.done) {
+    level.done = true;
+    setTimeout(finishLevel, 1600);
+  }
+  if (player.dead && player.hurtT > 1.2 && state === 'play') { state = 'gameover'; writeSave(); refreshGameover(); showOverlay('gameover'); }
+}
+
+function enterInvertedWorld(){
+  save.inverted = true; save.level = 8; writeSave();
+  runStory(STORY_PORTAL, () => startLevel(8));
+}
+function updateSurvive(dt){
+  const sv = level.survive, p = player;
+  if (sv.done) return;
+  const elapsed = level.t;
+  const k = Math.min(1, elapsed / sv.total);
+  const half = 720 - 500*k;                       // מרווח: 1440 -> 440
+  sv.left = 900 - half; sv.right = 900 + half;
+  // הקירות פוגעים במי שנוגע בהם
+  if (p.x < sv.left + 40) { p.x = sv.left + 40; if (p.invT <= 0) damagePlayer(9, sv.left - 100); }
+  if (p.x > sv.right - 40) { p.x = sv.right - 40; if (p.invT <= 0) damagePlayer(9, sv.right + 100); }
+  for (const e of enemies) { if (!e.dead) e.x = Math.max(sv.left + 30, Math.min(sv.right - 30, e.x)); }
+  // גלי מפלצות
+  sv.spawnT -= dt;
+  const alive = enemies.filter(e => hostile(e)).length;
+  if (sv.spawnT <= 0 && alive < 6) {
+    sv.spawnT = 4 - 1.5*k;
+    const st = miniStats(level.n);
+    for (let i=0;i<2;i++) {
+      const el = MINI_ELEMENTS[Math.floor(Math.random()*MINI_ELEMENTS.length)];
+      const x = Math.random() < 0.5 ? sv.left + 60 : sv.right - 60;
+      const m = makeEnemy(el, x, st, false); m.state = 'chase'; enemies.push(m);
+      effects.push({ type:'ring', x, y:-60, r:4, maxR:120, t:0, life:0.5, color:ELEMENTS[el].color });
+    }
+  }
+  if (elapsed >= sv.total) {
+    sv.done = true; level.done = true;
+    for (const e of enemies) if (!e.dead) { e.dead = true; e.hp = 0; effects.push({ type:'ring', x:e.x, y:-e.h*0.5, r:8, maxR:160, t:0, life:0.5, color:'#ff2bd6' }); }
+    banner('שרדת!', 'הכאוס זורם אל הנשק שלך', 3);
+    setTimeout(finishLevel, 1800);
+  }
+}
+function finishLevel(){
+  if (state !== 'play') return;
+  if (level.dragon) {
+    profile.dragon[lineOf(save.character)] = true; writeProfile();
+    let msg = ['הדרקון הסגול נפל.'];
+    msg.push('כוח הדרקון זרם אל הנשק שלך: ' + WEAPONS[currentWeaponId(save.character)].name + '!');
+    msg.push(save.character === 'wizard' ? 'עכשיו אפשר לזמן דרקון (C).' : lineOf('hero') === 'bow' ? 'החצים הופכים לדרקונים בזמן המעוף.' : 'המכה המיוחדת (C) משגרת קריסטלי דרקון.');
+    save.coins += 60; writeSave();
+    runStory([{ scene:'mountains', text:msg }], () => startLevel(level.n, {}));
+    return;
+  }
+  const n = level.n;
+  if (level.def.portal) {           // מפלצת הצל נפלה – במקום סיום, נפתח פורטל סודי
+    level.portal = { x: level.boss ? level.boss.x : player.x + 400, t:0 };
+    level.done = true;
+    banner('פורטל סודי נפתח!', 'לך אליו ולחץ E', 5);
+    return;
+  }
+  if (level.def.cutscene) { startCutscene(); return; }                       // מלך הצללים נסדק ומתלבן
+  if (level.def.universe) {                                                   // בוס היקום מצטרף – המהלך הרביעי (V)
+    save.summon2 = true; save.level = 18; save.coins += 200; writeSave();
+    runStory(STORY_UNIVERSE, () => startLevel(18)); return;
+  }
+  if (level.def.finalBoss) {                                                  // השטן נפל – הסוף, קרדיטים
+    save.level = 1; save.character = null; save.inverted = false; save.white = false; save.summon1 = false; save.summon2 = false; writeSave();
+    runStory(STORY_END, () => startCredits()); return;
+  }
+  if (level.def.bossOnly) {                                                   // אחד מששת הדרקונים שוחרר
+    save.level = n+1; save.coins += 120; writeSave();
+    runStory([{ black:true, text:[level.def.bossTitle + ' השתחרר מהרוע.', 'נשמר. השלב הבא: ' + LEVELS[n].title] }], () => startLevel(save.level)); return;
+  }
+  if (level.def.survive) {          // שרדת בחדר המתכווץ – נשק הכאוס לקו הנשק שלך
+    profile.chaos[lineOf(save.character)] = true; writeProfile();
+    save.level = n+1; save.coins += 100; writeSave();
+    const msg = (STORY_AFTER[n] || []).slice();
+    msg.push('נשק הכאוס: ' + WEAPONS[currentWeaponId(save.character)].name + '!');
+    runStory([{ black:true, text: msg }], () => startLevel(save.level));
+    return;
+  }
+  const msg = (STORY_AFTER[n] || []).slice();
+  save.level = n+1; save.coins += 40 + 10*n; writeSave();
+  runStory([{ [level.def.inverted ? 'black' : 'scene']: level.def.inverted ? true : 'mountains', text: msg.concat(['נשמר. השלב הבא: ' + LEVELS[n].title]) }], () => startLevel(save.level));
+}
+
+// ---------- שחקן ----------
+function updatePlayer(dt){
+  const p = player;
+  p.anim += dt; if (p.hurtT>0) p.hurtT -= dt; if (p.invT>0) p.invT -= dt; if (p.slowT>0) p.slowT -= dt;
+  if (p.cdT>0) p.cdT -= dt; if (p.specCd>0) p.specCd -= dt; if (p.atkT>0) p.atkT -= dt;
+  if (cheats().god) { p.hp = p.maxHp; p.armor = p.maxArmor; }
+  if (cheats().inf) { p.specCd = 0; p.sumCd1 = 0; p.sumCd2 = 0; p.cdT = Math.min(p.cdT, 0.08); }
+  if (p.dead) { p.vx *= 0.9; p.hurtT += dt*2; applyPhysics(p, dt); return; }
+  const sp = p.speed * (p.slowT>0 ? 0.55 : 1);
+  let mx = 0;
+  if (keys['arrowleft']) mx -= 1;
+  if (keys['arrowright']) mx += 1;
+  if (mx !== 0 && p.atkT <= 0.12) p.facing = mx;
+  p.vx = mx * sp;
+  if (tap(' ') && p.grounded) { p.vy = -p.jumpV; p.grounded = false; }
+  const w = WEAPONS[p.weapon];
+  // ---- תקיפה (X / לחיצה / כפתור המסך) ----
+  if (tap('x') && p.cdT <= 0) {
+    p.cdT = w.cooldown; p.atkT = 0.28; p.hits = new Set();
+    if (w.kind === 'bow') {
+      p.bowT = 0.26;                                   // שלב המתיחה – החץ נורה כשהוא מסתיים
+    } else if (w.kind === 'wand') {
+      castLightning(p, w);
+    } else {
+      effects.push({ type:'slash', x:p.x, y:-p.h*0.55, dir:p.facing, t:0, life:0.22, color:w.color, r:w.range });
+      // חרב אנטי-חומר / כאוס: השיסוע משגר גם גל אנרגיה אפלה קדימה
+      if (w.darkwave) projectiles.push({ from:'player', x:p.x + p.facing*60, y:-p.h*0.6, vx:p.facing*720, vy:0, r:30, dmg:w.dmg*(w.chaos ? 0.7 : 0.55), color:w.color, life:0.55, pierce:true, hits:new Set(), darkwave:true, dir:p.facing });
+    }
+  }
+  // שחרור החץ בסוף המתיחה
+  if (p.bowT > 0) {
+    p.bowT -= dt;
+    if (p.bowT <= 0) {
+      p.bowT = 0;
+      projectiles.push({ from:'player', x:p.x + p.facing*46, y:-p.h*0.6, vx:p.facing*w.speed, vy:0, r:w.blackhole ? 18 : 12, dmg:w.dmg, color:w.color, life:1.4, arrow:w.arrow, dragon:!!w.dragonArrow, blackhole:!!w.blackhole, pierce:!!w.blackhole, hits:new Set(), chaos:!!w.chaos });
+      effects.push({ type:'flash', x:p.x + p.facing*50, y:-p.h*0.6, t:0, life:0.12, color:w.color, r:18 });
+    }
+  }
+  // פגיעות מגע (חרב)
+  if (w.kind === 'melee' && p.atkT > 0.06) {
+    for (const e of enemies) {
+      if (!hostile(e) || p.hits.has(e)) continue;
+      const dx = e.x - p.x;
+      if (Math.sign(dx) === p.facing && Math.abs(dx) < w.range + e.w*0.4 && Math.abs((-e.h*0.5) - (-p.h*0.55)) < 220) {
+        p.hits.add(e); hitEnemy(e, w.dmg, p.facing);
+      }
+    }
+  }
+  // כוח מיוחד
+  if (tap('c') && p.specCd <= 0) { useSpecial(p, w); }
+  // זימונים: Z = מלך הצללים (הלבן), V = בוס היקום – עובדים עם כל נשק
+  if (p.sumCd1 > 0) p.sumCd1 -= dt; if (p.sumCd2 > 0) p.sumCd2 -= dt;
+  if (save.summon1 && tap('z') && p.sumCd1 <= 0) { p.sumCd1 = SUMMON_CD; summonAlly('shadow', w); }
+  if (save.summon2 && tap('v') && p.sumCd2 <= 0) { p.sumCd2 = SUMMON_CD; summonAlly('universe', w); }
+  applyPhysics(p, dt);
+  const minX = level.inBoss ? level.bossStart + 160 : 40;
+  const maxX = level.total - 60;
+  p.x = Math.max(minX, Math.min(maxX, p.x));
+}
+function applyPhysics(o, dt){
+  o.vy += GRAVITY*dt; o.y += o.vy*dt; o.x += o.vx*dt;
+  if (o.y >= 0) { o.y = 0; o.vy = 0; o.grounded = true; }
+}
+// ברק של הקוסם: פוגע באויב הקרוב ביותר שלפניו (או מאחוריו אם אין), ומחשמל אותו
+function castLightning(p, w){
+  const tip = { x: p.x + p.facing*70, y: -p.h*0.78 };
+  const cands = enemies.filter(e => hostile(e) && Math.abs(e.x-p.x) < w.range)
+    .sort((a,b) => (Math.abs(a.x-p.x) + (Math.sign(a.x-p.x)===p.facing?0:200)) - (Math.abs(b.x-p.x) + (Math.sign(b.x-p.x)===p.facing?0:200)));
+  const targets = cands.slice(0, w.multi || 1);      // שרביט הכאוס מחשמל כמה אויבים בבת אחת
+  if (targets.length) {
+    let px = tip.x, py = tip.y;
+    for (const best of targets) {
+      effects.push({ type:'bolt', x:px, y:py, x2:best.x, y2:-best.h*0.55, t:0, life:0.22, color:w.color, seed:Math.random()*100 });
+      hitEnemy(best, w.dmg, Math.sign(best.x-p.x)||1);
+      best.shockT = 0.35; best.stunT = Math.max(best.stunT, 0.15);
+      px = best.x; py = -best.h*0.55;
+    }
+  } else {
+    effects.push({ type:'bolt', x:tip.x, y:tip.y, x2:tip.x + p.facing*160, y2:tip.y - 40, t:0, life:0.18, color:w.color, seed:Math.random()*100 });
+  }
+  effects.push({ type:'flash', x:tip.x, y:tip.y, t:0, life:0.15, color:w.color, r:22 });
+}
+const SUMMON_CD = 22;
+// מזמן בוס ידידותי (מלך הצללים הלבן / בוס היקום) שעף מעל ויורה על האויבים 10 שניות
+function summonAlly(kind, w){
+  const p = player, f = p.facing;
+  const white = kind === 'shadow';
+  effects.push({ type:'dragonally', x:p.x - f*80, y:-300, dir:f, t:0, life:10, breathT:0.6, color: white ? '#ffffff' : '#4fd8ff', dmg:w.dmg*1.4,
+    sprite: white ? 'shadow_boss' : 'shadow_boss', filter: white ? 'grayscale(1) brightness(2.8)' : ELEMENTS.universe.filter, size:230, rate:0.7 });
+  effects.push({ type:'ring', x:p.x, y:-220, r:10, maxR:320, t:0, life:0.7, color: white ? '#ffffff' : '#4fd8ff' });
+  floatText(p.x, -p.h-30, white ? 'זימון: מלך הצללים' : 'זימון: בוס היקום', white ? '#fff' : '#4fd8ff');
+}
+function useSpecial(p, w){
+  p.specCd = w.special.cd;
+  const col = w.color, t = w.special.type, f = p.facing;
+  floatText(p.x, -p.h-30, w.special.name, col);
+  if (t === 'spin') {              // סיבוב להב – פוגע בכולם מסביב
+    effects.push({ type:'spin', x:p.x, y:-p.h*0.5, t:0, life:0.5, color:col, r:200 });
+    p.atkT = 0.5;
+    for (const e of enemies) if (hostile(e) && Math.abs(e.x-p.x) < 210) hitEnemy(e, w.dmg*2.2, Math.sign(e.x-p.x)||1);
+  } else if (t === 'annihilate') { // חרב אנטי-חומר: שואב את כל האויבים אל השחקן ומפוצץ אותם באנרגיה אפלה
+    p.atkT = 0.9;
+    effects.push({ type:'annihilate', x:p.x, y:-p.h*0.5, t:0, life:1.0, color:col, dmg:w.dmg*3, hit:false });
+  } else if (t === 'blackhole') {  // קשת הוויד: חור שחור נייח ששואב אויבים ופוגע בהם
+    effects.push({ type:'blackhole', x:p.x + f*280, y:-p.h*0.6, t:0, life:3.5, color:col, dmg:w.dmg*0.45, tickT:0, r:56 });
+  } else if (t === 'soulstorm') {  // שרביט הנשמות: 5 נשמות שרודפות אחרי אויבים
+    for (let i=0;i<5;i++) { const a = -1.4 + i*0.7; projectiles.push({ from:'player', x:p.x+f*40, y:-p.h*0.7, vx:f*Math.cos(a)*420, vy:Math.sin(a)*420, r:14, dmg:w.dmg*0.9, color:'#d8c0ff', life:2.5, soulorb:true, seek:5, chaos:false }); }
+  } else if (t === 'chaosstorm') { // נשק הכאוס: 14 ברקי כאוס שרודפים אחרי אויבים
+    p.atkT = 0.4;
+    effects.push({ type:'ring', x:p.x, y:-p.h*0.5, r:10, maxR:340, t:0, life:0.6, color:col });
+    for (let i=0;i<14;i++) { const a = i*Math.PI*2/14; projectiles.push({ from:'player', x:p.x, y:-p.h*0.6, vx:Math.cos(a)*560, vy:Math.sin(a)*560, r:13, dmg:w.dmg*0.75, color:col, life:2.4, crystal:true, seek:6, chaos:true }); }
+  } else if (t === 'chaosrain') {  // קשת הכאוס: גשם חצי חור שחור
+    for (let i=0;i<9;i++) projectiles.push({ from:'player', x:p.x + f*(120 + i*70), y:-620 - Math.random()*150, vx:0, vy:900, r:18, dmg:w.dmg*0.9, color:col, life:1.5, arrow:w.arrow, blackhole:true, pierce:true, hits:new Set(), chaos:true });
+  } else if (t === 'crystals') {   // חרב הדרקון – קריסטלים קטנים שעפים אל האויבים
+    p.atkT = 0.4;
+    effects.push({ type:'slash', x:p.x, y:-p.h*0.55, dir:f, t:0, life:0.3, color:col, r:w.range });
+    for (let i=0;i<7;i++) { const a = -1.2 + i*0.4; projectiles.push({ from:'player', x:p.x+f*40, y:-p.h*0.6, vx:f*Math.cos(a)*520, vy:Math.sin(a)*520, r:12, dmg:w.dmg*0.7, color:col, life:2.2, crystal:true, seek:4 }); }
+  } else if (t === 'volley') {     // מטח 5 חצים במניפה
+    for (const a of [-0.3,-0.15,0,0.15,0.3]) projectiles.push({ from:'player', x:p.x+f*40, y:-p.h*0.6, vx:f*w.speed*Math.cos(a), vy:w.speed*Math.sin(a), r:10, dmg:w.dmg, color:col, life:1.4, arrow:w.arrow, dragon:!!w.dragonArrow });
+  } else if (t === 'rain') {       // גשם חצי דרקון מהשמיים
+    for (let i=0;i<9;i++) projectiles.push({ from:'player', x:p.x + f*(120 + i*70), y:-620 - Math.random()*150, vx:0, vy:900, r:12, dmg:w.dmg*0.9, color:col, life:1.5, arrow:w.arrow, dragon:true, pierce:true, hits:new Set() });
+  } else if (t === 'chain') {      // ברק משורשר – עד 4 אויבים
+    const targets = enemies.filter(e=>hostile(e) && Math.abs(e.x-p.x) < 650).sort((a,b)=>Math.abs(a.x-p.x)-Math.abs(b.x-p.x)).slice(0,4);
+    let px = p.x + f*70, py = -p.h*0.78;
+    for (const e of targets) { effects.push({ type:'bolt', x:px, y:py, x2:e.x, y2:-e.h*0.55, t:0, life:0.35, color:col, seed:Math.random()*100 }); hitEnemy(e, w.dmg*1.5, Math.sign(e.x-p.x)||1); e.shockT = 0.5; e.stunT = 0.4; px = e.x; py = -e.h*0.55; }
+    if (!targets.length) effects.push({ type:'bolt', x:px, y:py, x2:px+f*200, y2:py-60, t:0, life:0.3, color:col, seed:1 });
+  } else if (t === 'summon') {     // זימון דרקון – עף מעל, נושף על האויבים 9 שניות
+    effects.push({ type:'dragonally', x:p.x - f*80, y:-280, dir:f, t:0, life:9, breathT:0.8, color:col, dmg:w.dmg });
+    effects.push({ type:'ring', x:p.x, y:-200, r:10, maxR:260, t:0, life:0.6, color:col });
+  }
+}
+function damagePlayer(dmg, fromX){
+  const p = player;
+  if (p.dead || p.invT > 0) return;
+  if (cheats().god) { floatText(p.x, -p.h-10, '👑', '#ffd766'); return; }
+  let d = dmg;
+  if (p.armor > 0) { const a = Math.min(p.armor, d*0.7); p.armor -= a; d -= a; }
+  p.hp -= d; p.hurtT = 0.35; p.invT = 0.8;
+  p.vx = Math.sign(p.x - fromX) * 260; p.vy = -220; p.grounded = false;
+  cam.shake = Math.max(cam.shake, 0.25);
+  floatText(p.x, -p.h-10, '-' + Math.round(dmg), '#ff5555');
+  if (p.hp <= 0) { p.hp = 0; p.dead = true; p.hurtT = 0; }
+}
+
+// ---------- בן לוויה (הדמות השנייה שמלווה בסיפור) ----------
+function updateCompanion(dt){
+  const c = companion;
+  c.anim += dt;
+  const target = player.x - player.facing*95;
+  const dx = target - c.x;
+  if (Math.abs(dx) > 30) { c.vx = Math.sign(dx)*Math.min(Math.abs(dx)*3, 300); c.facing = Math.sign(dx); }
+  else { c.vx = 0; c.facing = player.facing; }
+  if (!player.grounded && player.vy < -200 && c.grounded && Math.random()<0.1) { c.vy = -560; c.grounded = false; }
+  applyPhysics(c, dt);
+  const minX = level.inBoss ? level.bossStart + 30 : 30;
+  c.x = Math.max(minX, Math.min(level.total-30, c.x));
+}
+
+// ---------- אויבים ----------
+// מפלצת שהפכה לבן ברית: רודפת אחרי המפלצת הקרובה ותוקפת אותה, ונעלמת כשהזמן נגמר
+function updateAlly(e, dt){
+  e.allyT -= dt;
+  if (e.hurtT>0) e.hurtT -= dt;
+  if (e.allyT <= 0) { e.dead = true; e.hp = 0; effects.push({ type:'ring', x:e.x, y:-e.h*0.5, r:6, maxR:120, t:0, life:0.5, color:'#8dffb0' }); return; }
+  let best = null, bd = Infinity;
+  for (const o of enemies) { if (!hostile(o)) continue; const d = Math.abs(o.x - e.x); if (d < bd) { bd = d; best = o; } }
+  if (e.atkT > 0) e.atkT -= dt;
+  if (best) {
+    const dx = best.x - e.x;
+    if (Math.abs(dx) > e.range + best.w*0.3) { e.vx = Math.sign(dx)*e.speed*1.1; e.facing = Math.sign(dx); }
+    else { e.vx = 0; e.facing = Math.sign(dx)||e.facing; if (e.atkT <= 0 && e.windT <= 0) e.windT = 0.3; }
+    if (e.windT > 0) { e.vx = 0; e.windT -= dt; if (e.windT <= 0) { e.atkT = 1.0; effects.push({ type:'claw', x:e.x + e.facing*e.w*0.4, y:-e.h*0.5, dir:e.facing, t:0, life:0.2, color:'#8dffb0', r:70 }); if (Math.abs(best.x-e.x) < e.range + best.w*0.4) hitEnemy(best, e.dmg*1.6, e.facing); } }
+  } else {
+    const dx = player.x - player.facing*90 - e.x; e.vx = Math.abs(dx) > 40 ? Math.sign(dx)*e.speed : 0; if (e.vx) e.facing = Math.sign(dx);
+  }
+  if (e.hover) { e.y = -18 - Math.sin(e.anim*2.2)*12; e.vy = 0; e.x += e.vx*dt; } else applyPhysics(e, dt);
+}
+function updateEnemy(e, dt){
+  e.anim += dt;
+  if (e.dead) { e.alpha -= dt*1.5; return; }
+  if (e.ally) { updateAlly(e, dt); return; }
+  if (e.hurtT>0) e.hurtT -= dt;
+  if (e.stunT>0) { e.stunT -= dt; e.vx = 0; applyPhysics(e, dt); return; }
+  const p = player;
+  const dx = p.x - e.x, adx = Math.abs(dx);
+  const aggro = e.boss ? 3000 : 620;
+  if (e.state === 'idle' && adx < aggro) e.state = 'chase';
+  if (e.atkT > 0) e.atkT -= dt;
+  if (e.state === 'chase') {
+    if (adx > e.range) { e.vx = Math.sign(dx)*e.speed; e.facing = Math.sign(dx); }
+    else { e.vx = 0; e.facing = Math.sign(dx)||e.facing; if (e.atkT <= 0 && e.windT <= 0 && !p.dead) e.windT = e.boss ? 0.5 : 0.4; }
+    if (e.windT > 0) {
+      e.vx = 0; e.windT -= dt;
+      if (e.windT <= 0) {
+        e.atkT = e.atkCd;
+        effects.push({ type:'claw', x:e.x + e.facing*e.w*0.4, y:-e.h*0.5, dir:e.facing, t:0, life:0.2, color:ELEMENTS[e.el].color, r:e.boss?140:70 });
+        if (Math.abs(p.x-e.x) < e.range + p.w*0.5 + 20 && Math.abs(p.y - e.y) < 160) {
+          damagePlayer(e.dmg, e.x);
+          if (e.el === 'blood') { e.hp = Math.min(e.maxHp, e.hp + e.dmg*0.6); floatText(e.x, -e.h-10, '+' + Math.round(e.dmg*0.6), '#ff3358'); }
+        }
+      }
+    }
+  }
+  if (e.boss) bossSpecial(e, dt);
+  if (e.hover) { e.y = -18 - Math.sin(e.anim*2.2)*12; e.vy = 0; e.x += e.vx*dt; }
+  else applyPhysics(e, dt);
+  const minX = level.inBoss ? level.bossStart + 30 : 30;
+  e.x = Math.max(minX, Math.min(level.total-30, e.x));
+}
+function bossSpecial(e, dt){
+  e.specT -= dt;
+  if (e.specT > 0) return;
+  const p = player, col = ELEMENTS[e.el].color;
+  const sp = ELEMENTS[e.el].special;
+  const aim = (speed, y0) => { const ang = Math.atan2((-p.h*0.5) - y0, p.x - e.x); return { vx:Math.cos(ang)*speed, vy:Math.sin(ang)*speed }; };
+  if (sp === 'orb' || sp === 'frost' || sp === 'shadow') {
+    const y0 = -e.h*0.6, v = aim(sp==='frost'?300:340, y0);
+    projectiles.push({ from:'enemy', x:e.x, y:y0, vx:v.vx, vy:v.vy, r: sp==='shadow'?26:20, dmg: sp==='frost'? e.dmg*0.7 : e.dmg*1.2, color:col, life:4, slow: sp==='frost', trail:true, homing: sp==='shadow'?0.6:0 });
+    e.specT = sp==='shadow' ? 2.6 : 4;
+    floatText(e.x, -e.h-20, sp==='frost' ? 'כפור!' : 'כדור קסם', col);
+    if (sp === 'shadow') {
+      e.shadowN = (e.shadowN||0) + 1;
+      if (e.shadowN % 3 === 0) { summonMinions(e, 'dark', 2); }
+      if (e.shadowN % 4 === 0) { blinkTo(e); }
+    }
+  } else if (sp === 'erupt') {
+    for (let i=0;i<3;i++) { const x = p.x + (i-1)*150 + (Math.random()-0.5)*80; effects.push({ type:'pillar', x, t:0, life:1.4, warn:0.7, dmg:e.dmg*1.3, color:col, hit:false }); }
+    e.specT = 5; floatText(e.x, -e.h-20, 'התפרצות!', col);
+  } else if (sp === 'blink') {
+    blinkTo(e); e.specT = 6;
+  } else if (sp === 'summon') {
+    summonMinions(e, level.def.element, 2); e.specT = 8;
+  } else if (sp === 'drain') {
+    const y0 = -e.h*0.5, v = aim(380, y0);
+    projectiles.push({ from:'enemy', x:e.x, y:y0, vx:v.vx, vy:v.vy, r:18, dmg:e.dmg, color:col, life:3, drain:e, trail:true });
+    e.specT = 4.5;
+  } else if (sp === 'breath') {
+    effects.push({ type:'breath', x:e.x, dir:e.facing, t:0, life:1.1, dmg:e.dmg*1.4, color:col, hit:false, y:-e.h*0.55 });
+    e.specT = 5.5; floatText(e.x, -e.h-20, 'נשימת אש!', col);
+  } else if (sp === 'universe') {   // בוס היקום: שני כדורים רודפים, ומדי פעם זימון או קפיצה
+    const y0 = -e.h*0.6;
+    for (const off of [-0.35, 0.35]) { const ang = Math.atan2((-p.h*0.5) - y0, p.x - e.x) + off; projectiles.push({ from:'enemy', x:e.x, y:y0, vx:Math.cos(ang)*380, vy:Math.sin(ang)*380, r:24, dmg:e.dmg*1.1, color:col, life:4, trail:true, homing:0.8 }); }
+    e.shadowN = (e.shadowN||0) + 1; e.specT = 2.2;
+    if (e.shadowN % 3 === 0) summonMinions(e, MINI_ELEMENTS[Math.floor(Math.random()*6)], 2);
+    if (e.shadowN % 4 === 0) blinkTo(e);
+    floatText(e.x, -e.h-20, 'כוח היקום', col);
+  } else if (sp === 'devil') {      // השטן: התפרצות של 5 עמודי אש, כדורי אש רודפים, וזימון שלושה
+    e.shadowN = (e.shadowN||0) + 1;
+    const step = e.shadowN % 3;
+    if (step === 1) { for (let i=0;i<5;i++) { const x = p.x + (i-2)*140 + (Math.random()-0.5)*60; effects.push({ type:'pillar', x, t:0, life:1.4, warn:0.7, dmg:e.dmg*1.2, color:col, hit:false }); } floatText(e.x, -e.h-20, 'אש הגיהינום!', col); }
+    else if (step === 2) { const y0 = -e.h*0.6; for (const off of [-0.5, 0, 0.5]) { const ang = Math.atan2((-p.h*0.5) - y0, p.x - e.x) + off; projectiles.push({ from:'enemy', x:e.x, y:y0, vx:Math.cos(ang)*360, vy:Math.sin(ang)*360, r:26, dmg:e.dmg, color:col, life:4, trail:true, homing:0.7 }); } }
+    else { summonMinions(e, 'blood', 3); }
+    e.specT = 3;
+  }
+}
+function blinkTo(e){
+  const p = player;
+  effects.push({ type:'ring', x:e.x, y:-e.h*0.5, r:5, maxR:180, t:0, life:0.4, color:ELEMENTS[e.el].color });
+  e.x = p.x - p.facing*180; e.facing = Math.sign(p.x-e.x)||1; e.windT = 0.35;
+  effects.push({ type:'ring', x:e.x, y:-e.h*0.5, r:5, maxR:180, t:0, life:0.4, color:ELEMENTS[e.el].color });
+}
+function summonMinions(e, el, n){
+  const st = miniStats(level.n);
+  for (let i=0;i<n;i++) { const m = makeEnemy(el, e.x + (i?1:-1)*140, st, false); m.state='chase'; enemies.push(m); effects.push({ type:'ring', x:m.x, y:-60, r:4, maxR:110, t:0, life:0.5, color:ELEMENTS[el].color }); }
+  floatText(e.x, -e.h-20, 'זימון!', ELEMENTS[el].color);
+}
+function hitEnemy(e, dmg, dir){
+  if (e.dead) return;
+  dmg *= invertedMult();
+  e.hp -= dmg; e.hurtT = 0.18;
+  if (!e.boss) { e.vx = dir*120; e.stunT = 0.12; }
+  effects.push({ type:'hit', x:e.x + (Math.random()-0.5)*40, y:-e.h*0.55 + (Math.random()-0.5)*40, t:0, life:0.25, color:'#fff' });
+  floatText(e.x, -e.h-6, '-' + Math.round(dmg), '#ffe066');
+  if (e.boss) cam.shake = Math.max(cam.shake, 0.08);
+  if (e.hp <= 0) {
+    // שרביט הנשמות / הכאוס: סיכוי שהמפלצת המובסת תהפוך לבן ברית לכמה שניות
+    const wp = WEAPONS[player.weapon];
+    if (wp.soul && !e.boss && !e.ally && Math.random() < wp.soul) {
+      e.ally = true; e.allyT = 8; e.hp = e.maxHp*0.6; e.hurtT = 0; e.windT = 0; e.atkT = 0.5;
+      effects.push({ type:'ring', x:e.x, y:-e.h*0.5, r:8, maxR:200, t:0, life:0.6, color:'#8dffb0' });
+      floatText(e.x, -e.h-10, 'בן ברית!', '#8dffb0');
+      return;
+    }
+    e.hp = 0; e.dead = true; e.vx = 0; level.killed++;
+    // ספירת הריגות של הדמות – אחרי 30 הנשק מתחזק
+    const ch = player.char, before = tierOf(ch);
+    profile.kills[lineOf(ch)]++; writeProfile();
+    if (tierOf(ch) !== before) { player.weapon = currentWeaponId(ch); banner('הנשק התחזק!', WEAPONS[player.weapon].name + ' – נזק כפול', 3); effects.push({ type:'ring', x:player.x, y:-player.h*0.5, r:10, maxR:300, t:0, life:0.8, color:WEAPONS[player.weapon].color }); }
+    effects.push({ type:'ring', x:e.x, y:-e.h*0.5, r:8, maxR: e.boss?520:160, t:0, life: e.boss?1.2:0.5, color:ELEMENTS[e.el].color });
+    const n = e.boss ? 14 : 3;
+    for (let i=0;i<n;i++) coins.push({ x:e.x + (Math.random()-0.5)*60, y:-e.h*0.5, vx:(Math.random()-0.5)*260, vy:-300-Math.random()*250, t:0 });
+    // לב ריפוי: 25% מאויב רגיל, תמיד 2 מבוס
+    const hearts = e.boss ? 2 : (Math.random() < 0.25 ? 1 : 0);
+    for (let i=0;i<hearts;i++) coins.push({ x:e.x, y:-e.h*0.5, vx:(Math.random()-0.5)*200, vy:-350, t:0, heart:true });
+    if (e.boss) cam.shake = 0.5;
+  }
+}
+
+// ---------- קליעים ----------
+function updateProjectiles(dt){
+  const p = player;
+  for (const pr of projectiles) {
+    pr.life -= dt;
+    if (pr.blackhole) {   // חץ חור שחור: שואב אליו אויבים בסביבה
+      for (const e of enemies) { if (!hostile(e)) continue; const d = e.x - pr.x; if (Math.abs(d) < 190 && Math.abs(d) > 8) e.x -= Math.sign(d)*(e.boss ? 90 : 260)*dt; }
+      if (pr.chaos && pr.life < dt*1.5) {   // חץ כאוס מתפוצץ בסוף המעוף
+        effects.push({ type:'ring', x:pr.x, y:pr.y, r:10, maxR:180, t:0, life:0.5, color:pr.color });
+        for (const e of enemies) if (hostile(e) && Math.abs(e.x-pr.x) < 170) hitEnemy(e, pr.dmg*0.8, Math.sign(e.x-pr.x)||1);
+      }
+    }
+    if (pr.seek) {   // קליע של השחקן שמחפש את האויב הקרוב
+      let best = null, bd = Infinity; for (const e of enemies) { if (!hostile(e)) continue; const d = Math.hypot(e.x-pr.x, -e.h*0.5-pr.y); if (d < bd) { bd = d; best = e; } }
+      if (best) { const ang = Math.atan2((-best.h*0.5)-pr.y, best.x-pr.x); const sp = Math.hypot(pr.vx, pr.vy); pr.vx += (Math.cos(ang)*sp - pr.vx)*pr.seek*dt; pr.vy += (Math.sin(ang)*sp - pr.vy)*pr.seek*dt; }
+    }
+    if (pr.homing && !p.dead) { const ang = Math.atan2((-p.h*0.5)-pr.y, p.x-pr.x); const sp = Math.hypot(pr.vx, pr.vy); pr.vx += (Math.cos(ang)*sp - pr.vx)*pr.homing*dt; pr.vy += (Math.sin(ang)*sp - pr.vy)*pr.homing*dt; }
+    pr.x += pr.vx*dt; pr.y += pr.vy*dt;
+    if (pr.ground) pr.y = -30;
+    if (pr.y > 0) pr.life = 0;
+    if (pr.trail) effects.push({ type:'spark', x:pr.x, y:pr.y, t:0, life:0.25, color:pr.color, r:pr.r*0.6 });
+    if (pr.from === 'player') {
+      for (const e of enemies) {
+        if (!hostile(e)) continue;
+        if (pr.pierce && pr.hits.has(e)) continue;
+        if (Math.abs(e.x-pr.x) < e.w*0.45 + pr.r && pr.y < 0 && pr.y > -e.h - 10) {
+          hitEnemy(e, pr.dmg, Math.sign(pr.vx)||1);
+          if (pr.pierce) pr.hits.add(e); else { pr.life = 0; effects.push({ type:'flash', x:pr.x, y:pr.y, t:0, life:0.2, color:pr.color, r:30 }); break; }
+        }
+      }
+    } else if (!p.dead) {
+      if (Math.abs(p.x-pr.x) < p.w*0.5 + pr.r && pr.y < 0 && pr.y > -p.h - 10) {
+        damagePlayer(pr.dmg, pr.x);
+        if (pr.slow) { p.slowT = 2; floatText(p.x, -p.h-40, 'קפוא!', '#9ae6ff'); }
+        if (pr.drain && !pr.drain.dead) { pr.drain.hp = Math.min(pr.drain.maxHp, pr.drain.hp + pr.dmg); }
+        pr.life = 0; effects.push({ type:'flash', x:pr.x, y:pr.y, t:0, life:0.2, color:pr.color, r:34 });
+      }
+    }
+  }
+  projectiles = projectiles.filter(pr => pr.life > 0);
+}
+
+// ---------- אפקטים ----------
+function updateEffects(dt){
+  const p = player;
+  for (const f of effects) {
+    f.t += dt;
+    if (f.type === 'pillar' && !f.hit && f.t > f.warn && f.t < f.warn + 0.35) {
+      if (Math.abs(p.x - f.x) < 70 && p.y > -140) { damagePlayer(f.dmg, f.x); f.hit = true; }
+    }
+    if (f.type === 'breath' && !f.hit && f.t > 0.3) {
+      const dx = (p.x - f.x)*f.dir;
+      if (dx > 0 && dx < 520 && p.y > -260) { damagePlayer(f.dmg, f.x); f.hit = true; }
+    }
+    if (f.type === 'annihilate') {   // שאיבה של כל האויבים אל השחקן ואז פיצוץ
+      f.x = p.x;
+      if (f.t < 0.6) { for (const e of enemies) { if (!hostile(e)) continue; const d = e.x - f.x; if (Math.abs(d) < 360 && Math.abs(d) > 30) e.x -= Math.sign(d)*(e.boss ? 120 : 420)*dt; } }
+      else if (!f.hit) { f.hit = true; cam.shake = 0.5; effects.push({ type:'ring', x:f.x, y:f.y, r:10, maxR:420, t:0, life:0.7, color:f.color }); for (const e of enemies) if (hostile(e) && Math.abs(e.x-f.x) < 240) hitEnemy(e, f.dmg, Math.sign(e.x-f.x)||1); }
+    }
+    if (f.type === 'blackhole') {    // חור שחור נייח: שואב ופוגע כל 0.4 שניות
+      for (const e of enemies) { if (!hostile(e)) continue; const d = e.x - f.x; if (Math.abs(d) < 320 && Math.abs(d) > 10) e.x -= Math.sign(d)*(e.boss ? 100 : 300)*dt; }
+      f.tickT -= dt;
+      if (f.tickT <= 0) { f.tickT = 0.4; for (const e of enemies) if (hostile(e) && Math.abs(e.x-f.x) < f.r + e.w*0.45) hitEnemy(e, f.dmg, Math.sign(e.x-f.x)||1); }
+    }
+    if (f.type === 'dragonally') {   // הדרקון המזומן רודף אחרי האויב הקרוב ונושף עליו
+      let best = null, bd = Infinity; for (const e of enemies) { if (!hostile(e)) continue; const d = Math.abs(e.x-f.x); if (d < bd) { bd = d; best = e; } }
+      const tx = best ? best.x - Math.sign(best.x - (p.x)) * 120 : p.x - p.facing*80;
+      f.dir = Math.sign(tx - f.x) || f.dir; f.x += (tx - f.x)*Math.min(1, dt*2.2); f.y = -280 + Math.sin(f.t*2)*18;
+      f.breathT -= dt;
+      if (best && f.breathT <= 0 && bd < (f.sprite ? 520 : 320)) {
+        f.breathT = f.rate || 0.9; const ang = Math.atan2((-best.h*0.5) - f.y, best.x - f.x);
+        projectiles.push({ from:'player', x:f.x, y:f.y, vx:Math.cos(ang)*520, vy:Math.sin(ang)*520, r:22, dmg:f.dmg*1.2, color:f.color, life:1.2, trail:true });
+      }
+    }
+    if (f.type === 'sigil') {
+      f.ang += dt*3;
+      f.x = p.x + Math.cos(f.ang)*120; f.y = -p.h*0.55 + Math.sin(f.ang)*70;
+      for (const e of enemies) {
+        if (!hostile(e)) continue;
+        const key = enemies.indexOf(e);
+        if (Math.abs(e.x-f.x) < e.w*0.45+16 && f.y > -e.h-10 && (!f.hitT[key] || f.t - f.hitT[key] > 0.5)) { f.hitT[key] = f.t; hitEnemy(e, f.dmg, Math.sign(e.x-p.x)||1); }
+      }
+    }
+  }
+  effects = effects.filter(f => f.t < f.life);
+  if (cam.shake > 0) cam.shake -= dt;
+}
+function updateCoins(dt){
+  const p = player;
+  for (const c of coins) {
+    c.t += dt; c.vy += GRAVITY*dt; c.x += c.vx*dt; c.y += c.vy*dt;
+    if (c.y > 0) { c.y = 0; c.vy = -c.vy*0.4; c.vx *= 0.8; }
+    if (c.t > 0.5 && Math.abs(c.x-p.x) < 60 && c.y > -p.h) {
+      c.got = true;
+      if (c.heart) { if (!p.dead) { p.hp = Math.min(p.maxHp, p.hp + 25); floatText(p.x, -p.h-20, '+25', '#ff6b8a'); } }
+      else save.coins++;
+    }
+    else if (c.t > 0.8) { const dx = p.x-c.x; if (Math.abs(dx) < 260) c.vx += Math.sign(dx)*900*dt; }
+  }
+  coins = coins.filter(c => !c.got);
+}
+function updateCamera(dt){
+  const targetZoom = level.inBoss ? 0.72 : 1;
+  cam.zoom += (targetZoom - cam.zoom)*Math.min(1, dt*2.5);
+  const half = LW/2/cam.zoom;
+  let tx = player.x + player.facing*60;
+  const minX = (level.inBoss ? level.bossStart : 0) + half;
+  const maxX = level.total - half;
+  tx = Math.max(minX, Math.min(maxX, tx));
+  if (minX > maxX) tx = (level.bossStart + level.total)/2;
+  cam.x += (tx - cam.x)*Math.min(1, dt*4);
+}
+
+// ---------- ציור ----------
+function W2S(x, y){ return [LW/2 + (x - cam.x)*cam.zoom, GROUND_Y + (1-cam.zoom)*100 + y*cam.zoom]; }
+function groundScreenY(){ return GROUND_Y + (1-cam.zoom)*100; }
+
+function render(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.setTransform(viewScale,0,0,viewScale,viewOX,viewOY);
+  ctx.imageSmoothingEnabled = true;
+  if (state === 'loading') { drawLoading(); return; }
+  if (state === 'story') { drawStory(); return; }
+  if (state === 'cutscene') { drawCutscene(); return; }
+  if (state === 'credits') { drawCredits(); return; }
+  if (state === 'lobby' || state === 'shop' || state === 'lineselect' || state === 'victory') { return; }
+  if (level) {
+    drawWorld();
+    drawHUD();
+  }
+}
+function drawLoading(){
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,LW,LH);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+  ctx.font = 'bold 48px "Segoe UI", Arial'; ctx.fillText('שבועת הלהב', LW/2, LH/2-40);
+  ctx.font = '22px "Segoe UI", Arial'; ctx.fillText('טוען…', LW/2, LH/2+20);
+  const w = 400, x = LW/2-200, y = LH/2+50;
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.strokeRect(x,y,w,22);
+  ctx.fillStyle = '#e8192c'; ctx.fillRect(x+3,y+3,(w-6)*(loadedCount/Math.max(1,toLoad.length)),16);
+}
+
+// רקע פרוצדורלי – תלוי בסוג האזור, מצויר ביחידות עולם (כדי שזום החוצה יראה "מערה גדולה")
+function drawBackground(kind, camX, zoom, t){
+  if (kind === 'void' || kind === 'voidcave') { drawVoidBackground(kind, camX, zoom, t); return; }
+  if (kind === 'hell') { drawHellBackground(camX, zoom, t); return; }
+  const gy = groundScreenY();
+  const par = (f) => -((camX*f) % 4000);   // פרלקסה
+  if (kind === 'mountains' || kind === 'night' || kind === 'snow' || kind === 'field') {
+    const night = kind === 'night';
+    const g = ctx.createLinearGradient(0,0,0,gy);
+    if (night) { g.addColorStop(0,'#05061a'); g.addColorStop(1,'#1c1740'); }
+    else if (kind === 'snow') { g.addColorStop(0,'#8fb8d8'); g.addColorStop(1,'#e6f0f8'); }
+    else if (kind === 'field') { g.addColorStop(0,'#ffb266'); g.addColorStop(1,'#ffe1a8'); }
+    else { g.addColorStop(0,'#6ea8d8'); g.addColorStop(1,'#cfe6f5'); }
+    ctx.fillStyle = g; ctx.fillRect(0,0,LW,gy);
+    // ירח / שמש
+    ctx.fillStyle = night ? '#f4f0d0' : (kind==='field' ? '#ffd166' : '#fff6c0');
+    ctx.beginPath(); ctx.arc(LW-220, 120, night?42:56, 0, Math.PI*2); ctx.fill();
+    if (night) { ctx.fillStyle = '#fff'; for (let i=0;i<60;i++){ const sx = (i*173)%LW, sy = (i*97)%(gy-200); ctx.fillRect(sx, sy, 2, 2);} }
+    // הרים רחוקים
+    const mcol = night ? '#151235' : (kind==='snow' ? '#b7cde0' : (kind==='field' ? '#d98a5a' : '#7f9fbd'));
+    mountains(mcol, 0.15, 260, 700, gy, camX, zoom, 1);
+    const mcol2 = night ? '#0e0c28' : (kind==='snow' ? '#93adc4' : (kind==='field' ? '#b56b45' : '#5a7d9c'));
+    mountains(mcol2, 0.3, 180, 420, gy, camX, zoom, 2);
+    // יער / שדה קרוב
+    const near = night ? '#090818' : (kind==='snow' ? '#dbe8f0' : (kind==='field' ? '#e0b24a' : '#3f6b3a'));
+    hills(near, 0.55, 90, gy, camX, zoom, 3);
+    if (kind === 'field') wheat(gy, camX, zoom, t);
+    // קרקע
+    ctx.fillStyle = night ? '#0c1a10' : (kind==='snow' ? '#f2f7fb' : (kind==='field' ? '#8a5a2b' : '#3b6f2f'));
+    ctx.fillRect(0, gy, LW, LH-gy);
+    ctx.fillStyle = night ? '#163121' : (kind==='snow' ? '#c8d9e6' : (kind==='field' ? '#c08a3e' : '#5ea043'));
+    ctx.fillRect(0, gy, LW, 10*zoom);
+  } else if (kind === 'cave' || kind === 'shadow') {
+    const dark = kind === 'shadow';
+    const g = ctx.createLinearGradient(0,0,0,gy);
+    g.addColorStop(0, dark ? '#2a1a44' : '#120a08'); g.addColorStop(1, dark ? '#6b4a8e' : '#3a2318');
+    ctx.fillStyle = g; ctx.fillRect(0,0,LW,gy);
+    // קירות מערה רחוקים
+    caveWall(dark ? '#3d2a5c' : '#2a1610', 0.2, 320, gy, camX, zoom, 4);
+    caveWall(dark ? '#4e3a70' : '#4a2a1c', 0.45, 200, gy, camX, zoom, 5);
+    // נטיפים
+    ctx.fillStyle = dark ? '#33224d' : '#22120c';
+    for (let i=0;i<24;i++) { const wx = i*380; const sx = LW/2 + (wx - camX*0.7)*zoom; const sxm = ((sx % (LW+400)) + (LW+400)) % (LW+400) - 200; const h = (80 + (i*53)%160)*zoom*(level && level.inBoss?1.8:1); ctx.beginPath(); ctx.moveTo(sxm-30*zoom,0); ctx.lineTo(sxm+30*zoom,0); ctx.lineTo(sxm,h); ctx.fill(); }
+    // לבה / זוהר
+    if (!dark) { ctx.fillStyle = 'rgba(255,120,40,.12)'; for (let i=0;i<8;i++) { const sx = ((i*520 - camX*0.5*zoom) % (LW+300) + LW+300) % (LW+300) - 150; ctx.beginPath(); ctx.arc(sx, gy-20, 120*zoom + Math.sin(t*2+i)*10, 0, Math.PI*2); ctx.fill(); } }
+    else { ctx.fillStyle = 'rgba(200,140,255,.16)'; for (let i=0;i<6;i++) { const sx = ((i*640 - camX*0.5*zoom) % (LW+300) + LW+300) % (LW+300) - 150; ctx.beginPath(); ctx.arc(sx, gy-40, 180*zoom + Math.sin(t*1.5+i)*14, 0, Math.PI*2); ctx.fill(); } }
+    ctx.fillStyle = dark ? '#221636' : '#1e110b'; ctx.fillRect(0, gy, LW, LH-gy);
+    ctx.fillStyle = dark ? '#5a3f80' : '#5a3a25'; ctx.fillRect(0, gy, LW, 8*zoom);
+  }
+}
+// העולם ההפוך: סגול כהה, שחור זוהר, קווי ניאון
+function drawVoidBackground(kind, camX, zoom, t){
+  const gy = groundScreenY();
+  const g = ctx.createLinearGradient(0,0,0,gy);
+  if (kind === 'void') { g.addColorStop(0,'#07000f'); g.addColorStop(0.6,'#1a0533'); g.addColorStop(1,'#2d0a4e'); }
+  else { g.addColorStop(0,'#020005'); g.addColorStop(1,'#12031f'); }
+  ctx.fillStyle = g; ctx.fillRect(0,0,LW,gy);
+  ctx.save();
+  if (kind === 'void') {
+    // ירח שחור עם הילת ניאון
+    ctx.shadowColor = '#c040ff'; ctx.shadowBlur = 40; ctx.fillStyle = '#05000a'; ctx.beginPath(); ctx.arc(LW-240, 130, 60, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = '#d070ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(LW-240, 130, 60, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = '#e0a0ff'; for (let i=0;i<70;i++){ const sx = (i*191)%LW, sy = (i*83)%(gy-220); ctx.globalAlpha = 0.4 + 0.6*Math.abs(Math.sin(t*2 + i)); ctx.fillRect(sx, sy, 2, 2); } ctx.globalAlpha = 1;
+    // הרים הפוכים: מילוי שחור, קו ניאון
+    for (const [par, h, period, col, seed] of [[0.15, 260, 700, '#7a20d0', 1], [0.3, 180, 420, '#b040ff', 2], [0.55, 100, 300, '#ff2bd6', 3]]) {
+      ctx.fillStyle = '#08000f'; ctx.beginPath(); ctx.moveTo(0, gy); const off = camX*par*zoom; const pts = [];
+      for (let sx=-100; sx<=LW+100; sx+=20) { const wx = (sx + off)/zoom; const y = gy - (h*zoom)*(0.55 + 0.45*Math.sin(wx/period*2*Math.PI + seed)*Math.cos(wx/(period*0.37)+seed*2)) - 40*zoom; ctx.lineTo(sx, y); pts.push([sx,y]); }
+      ctx.lineTo(LW+100, gy); ctx.fill();
+      ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.shadowColor = col; ctx.shadowBlur = 14; ctx.beginPath(); pts.forEach((q,i) => i ? ctx.lineTo(q[0],q[1]) : ctx.moveTo(q[0],q[1])); ctx.stroke(); ctx.shadowBlur = 0;
+    }
+  } else {
+    // מערת וויד: נטיפים שחורים עם קצוות ניאון
+    for (let i=0;i<26;i++) { const wx = i*360; const sx = LW/2 + (wx - camX*0.7)*zoom; const sxm = ((sx % (LW+400)) + (LW+400)) % (LW+400) - 200; const h = (90 + (i*53)%170)*zoom*(level && level.inBoss?1.7:1);
+      ctx.fillStyle = '#05000a'; ctx.beginPath(); ctx.moveTo(sxm-30*zoom,0); ctx.lineTo(sxm+30*zoom,0); ctx.lineTo(sxm,h); ctx.fill();
+      ctx.strokeStyle = i%2 ? '#b040ff' : '#ff2bd6'; ctx.lineWidth = 2; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 12; ctx.beginPath(); ctx.moveTo(sxm-30*zoom,0); ctx.lineTo(sxm,h); ctx.lineTo(sxm+30*zoom,0); ctx.stroke(); ctx.shadowBlur = 0; }
+    ctx.fillStyle = 'rgba(180,60,255,.10)'; for (let i=0;i<7;i++) { const sx = ((i*560 - camX*0.5*zoom) % (LW+300) + LW+300) % (LW+300) - 150; ctx.beginPath(); ctx.arc(sx, gy-30, 160*zoom + Math.sin(t*1.7+i)*14, 0, Math.PI*2); ctx.fill(); }
+  }
+  ctx.restore();
+  // קרקע שחורה עם קו ניאון
+  ctx.fillStyle = '#05000a'; ctx.fillRect(0, gy, LW, LH-gy);
+  ctx.save(); ctx.strokeStyle = kind === 'void' ? '#c040ff' : '#ff2bd6'; ctx.lineWidth = 3; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 18; ctx.beginPath(); ctx.moveTo(0, gy+1); ctx.lineTo(LW, gy+1); ctx.stroke();
+  ctx.globalAlpha = 0.25; ctx.lineWidth = 1; for (let i=0;i<12;i++) { const sx = ((i*140 - camX*zoom) % (LW+140) + LW+140) % (LW+140) - 70; ctx.beginPath(); ctx.moveTo(sx, gy); ctx.lineTo(sx - 60, LH); ctx.stroke(); }
+  ctx.restore();
+}
+// עולם הרוע: שמיים אדומים־שחורים, קוצים שחורים, לבה
+function drawHellBackground(camX, zoom, t){
+  const gy = groundScreenY();
+  const g = ctx.createLinearGradient(0,0,0,gy); g.addColorStop(0,'#0a0002'); g.addColorStop(0.7,'#3a0508'); g.addColorStop(1,'#7a1208');
+  ctx.fillStyle = g; ctx.fillRect(0,0,LW,gy);
+  ctx.save(); ctx.shadowColor = '#ff3020'; ctx.shadowBlur = 50; ctx.fillStyle = '#200005'; ctx.beginPath(); ctx.arc(LW-240, 140, 70, 0, Math.PI*2); ctx.fill(); ctx.restore();
+  for (const [par, h, period, col, seed] of [[0.15, 300, 500, '#12000a', 1], [0.35, 200, 320, '#1e0208', 2]]) {
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, gy); const off = camX*par*zoom;
+    for (let sx=-100; sx<=LW+100; sx+=14) { const wx = (sx + off)/zoom; const spike = Math.abs(Math.sin(wx/period*6.28 + seed)); const y = gy - (h*zoom)*Math.pow(spike, 3) - 20*zoom; ctx.lineTo(sx, y); }
+    ctx.lineTo(LW+100, gy); ctx.fill();
+  }
+  const lava = ctx.createLinearGradient(0, gy, 0, LH); lava.addColorStop(0, '#ff6a20'); lava.addColorStop(0.3, '#c01808'); lava.addColorStop(1, '#2a0203');
+  ctx.fillStyle = lava; ctx.fillRect(0, gy, LW, LH-gy);
+  ctx.fillStyle = 'rgba(255,200,60,.5)'; for (let i=0;i<20;i++) { const sx = ((i*137 - camX*zoom) % (LW+60) + LW+60) % (LW+60) - 30; ctx.beginPath(); ctx.arc(sx, gy + 20 + (i*31)%60, 4 + 4*Math.abs(Math.sin(t*3+i)), 0, Math.PI*2); ctx.fill(); }
+  ctx.save(); ctx.strokeStyle = '#ff8a30'; ctx.lineWidth = 3; ctx.shadowColor = '#ff6a20'; ctx.shadowBlur = 20; ctx.beginPath(); ctx.moveTo(0, gy+1); ctx.lineTo(LW, gy+1); ctx.stroke(); ctx.restore();
+}
+function mountains(color, par, h, period, gy, camX, zoom, seed){
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, gy);
+  const off = camX*par*zoom;
+  for (let sx=-100; sx<=LW+100; sx+=20) {
+    const wx = (sx + off)/zoom;
+    const y = gy - (h*zoom)*(0.55 + 0.45*Math.sin(wx/period*2*Math.PI + seed) * Math.cos(wx/(period*0.37)+seed*2)) - 40*zoom;
+    ctx.lineTo(sx, y);
+  }
+  ctx.lineTo(LW+100, gy); ctx.fill();
+}
+function hills(color, par, h, gy, camX, zoom, seed){
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, gy);
+  const off = camX*par*zoom;
+  for (let sx=-100; sx<=LW+100; sx+=16) {
+    const wx = (sx + off)/zoom;
+    const y = gy - (h*zoom)*(0.5 + 0.5*Math.sin(wx/300 + seed)) - 6*zoom;
+    ctx.lineTo(sx, y);
+    // עצים פשוטים
+  }
+  ctx.lineTo(LW+100, gy); ctx.fill();
+  // עצים (משולשים)
+  const off2 = camX*par*zoom;
+  for (let i=-2;i<30;i++) {
+    const wx = i*260 + (seed*37)%100;
+    const sx = wx*zoom - off2 + ((Math.floor(off2/(30*260*zoom))+1)*30*260*zoom);
+    const sxm = ((sx % (LW+300)) + (LW+300)) % (LW+300) - 150;
+    const th = (110 + (i*41)%70)*zoom;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.moveTo(sxm-28*zoom, gy-10*zoom); ctx.lineTo(sxm+28*zoom, gy-10*zoom); ctx.lineTo(sxm, gy-th); ctx.fill();
+  }
+}
+function wheat(gy, camX, zoom, t){
+  ctx.strokeStyle = '#d9a441'; ctx.lineWidth = 3*zoom;
+  for (let i=0;i<70;i++) { const sx = ((i*37*zoom - camX*0.8*zoom) % (LW+40) + LW+40) % (LW+40) - 20; const h = (40 + (i*13)%30)*zoom; ctx.beginPath(); ctx.moveTo(sx, gy); ctx.quadraticCurveTo(sx + Math.sin(t*2+i)*8, gy-h/2, sx + Math.sin(t*2+i)*14, gy-h); ctx.stroke(); }
+}
+function caveWall(color, par, h, gy, camX, zoom, seed){
+  ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(0, 0);
+  const off = camX*par*zoom;
+  for (let sx=-100; sx<=LW+100; sx+=24) {
+    const wx = (sx + off)/zoom;
+    const y = (h*zoom)*(0.5 + 0.5*Math.sin(wx/180 + seed)*Math.cos(wx/77+seed)) * (level && level.inBoss ? 1.7 : 1);
+    ctx.lineTo(sx, y);
+  }
+  ctx.lineTo(LW+100, 0); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0, gy);
+  for (let sx=-100; sx<=LW+100; sx+=24) {
+    const wx = (sx + off)/zoom;
+    const y = gy - (h*0.6*zoom)*(0.5 + 0.5*Math.sin(wx/140 + seed*3)*Math.cos(wx/61+seed));
+    ctx.lineTo(sx, y);
+  }
+  ctx.lineTo(LW+100, gy); ctx.fill();
+}
+
+// איזה רקע יש בנקודה x בעולם (לפי מקטעי השלב)
+function bgAt(x){
+  if (level.inBoss || x >= level.bossStart) return level.bossBg;
+  for (const [bg, until] of level.segments) if (x < until) return bg;
+  return level.bossBg;
+}
+// רקע עם מעבר הדרגתי בין מקטעים (למשל יציאה מהמערה החוצה)
+function drawSceneBackground(){
+  const cur = bgAt(cam.x);
+  drawBackground(cur, cam.x, cam.zoom, level.t);
+  const bounds = level.segments.map(sg => sg[1]).concat([level.bossStart]);
+  for (const bx of bounds) {
+    const d = bx - cam.x;
+    if (Math.abs(d) < 320) {
+      const other = bgAt(d > 0 ? bx + 1 : bx - 1);
+      if (other !== cur) { ctx.globalAlpha = 1 - Math.abs(d)/320; drawBackground(other, cam.x, cam.zoom, level.t); ctx.globalAlpha = 1; }
+    }
+  }
+  // פתחי מערה בגבולות המקטעים
+  for (const bx of level.segments.map(sg => sg[1]).slice(0, -1)) drawCaveMouth(bx);
+}
+function drawCaveMouth(wx){
+  const [sx, sy] = W2S(wx, 0); const z = cam.zoom;
+  if (sx < -400 || sx > LW+400) return;
+  ctx.fillStyle = '#2b1a12';
+  ctx.beginPath(); ctx.moveTo(sx-170*z, sy); ctx.quadraticCurveTo(sx-160*z, sy-330*z, sx, sy-360*z); ctx.quadraticCurveTo(sx+160*z, sy-330*z, sx+170*z, sy); ctx.fill();
+  ctx.fillStyle = '#0a0604';
+  ctx.beginPath(); ctx.moveTo(sx-110*z, sy); ctx.quadraticCurveTo(sx-100*z, sy-260*z, sx, sy-280*z); ctx.quadraticCurveTo(sx+100*z, sy-260*z, sx+110*z, sy); ctx.fill();
+}
+function drawFork(){
+  const fx = level.fork; const z = cam.zoom, sealed = profile.dragon[lineOf(save.character)];
+  const [sx, sy] = W2S(fx, 0);
+  if (sx < -500 || sx > LW+500) return;
+  // שער שמאלי – מאורת הדרקון (סגול), שער ימני – הדרך הרגילה
+  const gate = (gx, col, label, glow) => {
+    ctx.fillStyle = '#1a1016';
+    ctx.beginPath(); ctx.moveTo(gx-120*z, sy); ctx.quadraticCurveTo(gx-110*z, sy-300*z, gx, sy-320*z); ctx.quadraticCurveTo(gx+110*z, sy-300*z, gx+120*z, sy); ctx.fill();
+    ctx.fillStyle = glow ? col : '#050305'; ctx.globalAlpha = glow ? 0.35 + 0.15*Math.sin(level.t*3) : 1;
+    ctx.beginPath(); ctx.moveTo(gx-80*z, sy); ctx.quadraticCurveTo(gx-72*z, sy-240*z, gx, sy-255*z); ctx.quadraticCurveTo(gx+72*z, sy-240*z, gx+80*z, sy); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff'; ctx.font = `bold ${20*z}px "Segoe UI", Arial`; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 4; ctx.strokeText(label, gx, sy-335*z); ctx.fillText(label, gx, sy-335*z);
+  };
+  gate(sx, '#c060ff', sealed ? 'המאורה ריקה' : 'מאורת הדרקון', !sealed);
+  gate(sx + 300*z, '#ffd766', 'הדרך הרגילה', true);
+  // הדרקון "מציץ" מעל השער
+  const dim = IMG['dragon_walk_'+(Math.floor(level.t*6)%6)];
+  if (!sealed && dim && dim.naturalWidth) { const h = 110*z, w = dim.naturalWidth*h/dim.naturalHeight; ctx.save(); ctx.globalAlpha = 0.85; ctx.shadowColor = '#c060ff'; ctx.shadowBlur = 20; ctx.drawImage(dim, sx-w/2, sy-360*z-h + Math.sin(level.t*2)*6, w, h); ctx.restore(); }
+  if (!sealed && Math.abs(player.x - fx) < 110) {
+    ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(LW/2-220, LH-90, 440, 44);
+    ctx.fillStyle = '#ffd766'; ctx.font = 'bold 22px "Segoe UI", Arial'; ctx.textAlign = 'center'; ctx.direction = 'rtl';
+    ctx.fillText('E – להיכנס למאורת הדרקון', LW/2, LH-60);
+  }
+}
+function drawWorld(){
+  const shake = cam.shake > 0 ? (Math.random()-0.5)*cam.shake*40 : 0;
+  ctx.save(); ctx.translate(shake, shake*0.6);
+  drawSceneBackground();
+  if (level.fork) drawFork();
+  if (level.portal) drawPortal();
+  if (level.survive) drawSurviveWalls();
+  // שער הבוס
+  if (!level.inBoss) drawGate();
+  // ישויות (לפי x כדי שאויב מאחור לא יכסה)
+  const drawables = [];
+  for (const e of enemies) drawables.push({ z:e.boss?-1:0, fn:()=>drawEnemy(e) });
+  if (companion) drawables.push({ z:0.5, fn:()=>drawCompanion() });
+  drawables.push({ z:1, fn:()=>drawPlayer() });
+  drawables.sort((a,b)=>a.z-b.z).forEach(d=>d.fn());
+  for (const c of coins) drawCoin(c);
+  for (const f of effects) drawEffect(f);
+  for (const pr of projectiles) drawProjectile(pr);
+  if (settings.hitboxes) drawHitboxes();
+  if (level.def.inverted) drawInvertedOverlay();
+  for (const t of texts) { const [sx,sy] = W2S(t.x, t.y); ctx.globalAlpha = 1 - t.t/t.life; ctx.fillStyle = t.color; ctx.font = 'bold 22px "Segoe UI", Arial'; ctx.textAlign='center'; ctx.direction='rtl'; ctx.strokeStyle='#000'; ctx.lineWidth=4; ctx.strokeText(t.s, sx, sy); ctx.fillText(t.s, sx, sy); ctx.globalAlpha = 1; }
+  ctx.restore();
+}
+// תיבות פגיעה (כמו במיינקראפט): ירוק = גוף, צהוב מקווקו = מכאן אפשר לפגוע במפלצת, אדום = המפלצת יכולה לפגוע בך
+function drawHitboxes(){
+  const z = cam.zoom, p = player, w = WEAPONS[p.weapon];
+  const box = (x0, y0, x1, y1, color, dash) => {
+    const [sx0, sy0] = W2S(x0, y0), [sx1, sy1] = W2S(x1, y1);
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash ? [8,6] : []); ctx.shadowColor = color; ctx.shadowBlur = 6;
+    ctx.strokeRect(Math.min(sx0,sx1), Math.min(sy0,sy1), Math.abs(sx1-sx0), Math.abs(sy1-sy0)); ctx.restore();
+  };
+  const label = (x, y, txt, color) => { const [sx, sy] = W2S(x, y); ctx.save(); ctx.font = 'bold 12px Arial'; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.direction = 'rtl'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.strokeText(txt, sx, sy); ctx.fillText(txt, sx, sy); ctx.restore(); };
+  const S = settings, boxStyle = S.hbStyle === 'box';
+  // גוף – שחקן ומפלצות (בסגנון "זוהר" הגוף מצויר כזוהר על הספרייט עצמו, ב-drawPlayer/drawEnemy)
+  if (S.hbBody && boxStyle) {
+    box(p.x - p.w/2, -p.h, p.x + p.w/2, 0, S.hbColBody);
+    for (const e of enemies) if (!e.dead) box(e.x - e.w*0.45, -e.h, e.x + e.w*0.45, 0, S.hbColBody);
+  }
+  // טווחי התקפה מקרוב (כבוי כברירת מחדל)
+  if (S.hbRange) for (const e of enemies) {
+    if (e.dead) continue;
+    if (w.kind === 'melee') { const r = w.range + e.w*0.4; box(e.x - r, -e.h - 10, e.x + r, 0, S.hbColRange, true); label(e.x, -e.h - 16, 'טווח החרב', S.hbColRange); }
+    else if (w.kind === 'wand') { box(e.x - w.range, -e.h - 10, e.x + w.range, 0, S.hbColRange, true); label(e.x, -e.h - 16, 'טווח הברק', S.hbColRange); }
+    const ar = e.range + p.w*0.5 + 20;
+    box(e.x - ar, -160, e.x + ar, 0, S.hbColDanger, true);
+  }
+  // קליעים ואפקטים שפוגעים (חצים, קריסטלים, אש דרקון, כדורי בוס, עמודי אש, נשימה)
+  if (S.hbProj) {
+    const glowBox = (x0, y0, x1, y1, color) => {
+      if (boxStyle) { box(x0, y0, x1, y1, color); return; }
+      const [sx0, sy0] = W2S(x0, y0), [sx1, sy1] = W2S(x1, y1);
+      ctx.save(); ctx.fillStyle = color; ctx.globalAlpha = 0.28; ctx.shadowColor = color; ctx.shadowBlur = 18;
+      ctx.beginPath(); ctx.ellipse((sx0+sx1)/2, (sy0+sy1)/2, Math.abs(sx1-sx0)/2 + 4, Math.abs(sy1-sy0)/2 + 4, 0, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    };
+    for (const pr of projectiles) {
+      if (pr.ground) glowBox(pr.x - pr.r, -pr.r*2.4, pr.x + pr.r, 0, S.hbColProj);
+      else glowBox(pr.x - pr.r, pr.y - pr.r, pr.x + pr.r, pr.y + pr.r, S.hbColProj);
+    }
+    for (const f of effects) {
+      if (f.type === 'pillar') box(f.x - 70, -360, f.x + 70, 0, S.hbColProj, f.t < f.warn);
+      else if (f.type === 'breath') box(f.x, -260, f.x + f.dir*520, 0, S.hbColProj, f.t < 0.3);
+      else if (f.type === 'sigil' && f.x !== undefined) glowBox(f.x - 16, f.y - 16, f.x + 16, f.y + 16, S.hbColProj);
+      else if (f.type === 'dragonally') glowBox(f.x - 90, f.y - 60, f.x + 90, f.y + 60, S.hbColProj);
+    }
+  }
+}
+// זוהר תיבת פגיעה על ספרייט (סגנון "זוהר סביב הדמות")
+function hitGlowActive(){ return settings.hitboxes && settings.hbBody && settings.hbStyle === 'glow'; }
+// הפורטל הסודי אחרי מפלצת הצל
+function drawPortal(){
+  const pt = level.portal, [sx, sy] = W2S(pt.x, 0), z = cam.zoom;
+  const open = Math.min(1, pt.t/1.2);
+  ctx.save(); ctx.translate(sx, sy - 190*z*open);
+  for (let i=0;i<3;i++) { ctx.rotate(pt.t*(i%2?1.2:-0.8)); ctx.strokeStyle = ['#c040ff','#ff2bd6','#7a1fff'][i]; ctx.lineWidth = 6*z; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 30; ctx.beginPath(); ctx.ellipse(0, 0, (110 - i*22)*z*open, (190 - i*30)*z*open, 0, 0, Math.PI*2); ctx.stroke(); }
+  ctx.rotate(0); ctx.fillStyle = '#05000a'; ctx.globalAlpha = 0.9; ctx.beginPath(); ctx.ellipse(0, 0, 70*z*open, 150*z*open, 0, 0, Math.PI*2); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#e0a0ff'; ctx.font = `bold ${20*z}px "Segoe UI", Arial`; ctx.textAlign = 'center'; ctx.direction = 'rtl'; ctx.strokeStyle = '#000'; ctx.lineWidth = 4;
+  ctx.strokeText('פורטל סודי', sx, sy - 400*z*open); ctx.fillText('פורטל סודי', sx, sy - 400*z*open);
+  if (Math.abs(player.x - pt.x) < 130) { ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(LW/2-220, LH-90, 440, 44); ctx.fillStyle = '#e0a0ff'; ctx.font = 'bold 22px "Segoe UI", Arial'; ctx.fillText('E – להיכנס לעולם ההפוך', LW/2, LH-60); }
+}
+// קירות החדר המתכווץ
+function drawSurviveWalls(){
+  const sv = level.survive, z = cam.zoom, gy = groundScreenY();
+  const [lx] = W2S(sv.left, 0), [rx] = W2S(sv.right, 0);
+  ctx.save();
+  ctx.fillStyle = '#05000a'; ctx.fillRect(-200, 0, lx + 200, LH); ctx.fillRect(rx, 0, LW - rx + 200, LH);
+  const pulse = 0.6 + 0.4*Math.sin(level.t*6);
+  for (const x of [lx, rx]) { ctx.strokeStyle = '#ff2bd6'; ctx.lineWidth = 5*z; ctx.shadowColor = '#ff2bd6'; ctx.shadowBlur = 30*pulse; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, gy); ctx.stroke();
+    ctx.strokeStyle = '#7a1fff'; ctx.lineWidth = 2; for (let y=20; y<gy; y+=40) { ctx.beginPath(); ctx.moveTo(x - (x===lx?-1:1)*(10 + 8*pulse), y); ctx.lineTo(x, y + 18); ctx.stroke(); } }
+  ctx.restore();
+}
+// שכבת ניאון של העולם ההפוך: וינייטה סגולה, ריצוד קל
+function drawInvertedOverlay(){
+  const g = ctx.createRadialGradient(LW/2, LH/2, LH*0.35, LW/2, LH/2, LH*0.95);
+  const hell = level.bossBg === 'hell';
+  g.addColorStop(0, hell ? 'rgba(60,0,0,0)' : 'rgba(40,0,70,0)'); g.addColorStop(1, hell ? 'rgba(40,0,0,.8)' : 'rgba(20,0,40,.75)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, LW, LH);
+  if (Math.random() < 0.06) { ctx.fillStyle = 'rgba(255,43,214,.06)'; ctx.fillRect(0, Math.random()*LH, LW, 3); }
+}
+function drawGate(){
+  const [sx, sy] = W2S(level.bossStart, 0);
+  if (sx < -200 || sx > LW+200) return;
+  const z = cam.zoom, col = ELEMENTS[level.element].color;
+  ctx.fillStyle = '#222'; ctx.fillRect(sx-30*z, sy-260*z, 24*z, 260*z); ctx.fillRect(sx+80*z, sy-260*z, 24*z, 260*z);
+  ctx.fillRect(sx-40*z, sy-280*z, 154*z, 26*z);
+  ctx.fillStyle = col; ctx.globalAlpha = 0.35 + 0.15*Math.sin(level.t*3); ctx.fillRect(sx-6*z, sy-254*z, 86*z, 254*z); ctx.globalAlpha = 1;
+  ctx.fillStyle = '#fff'; ctx.font = `bold ${18*z}px "Segoe UI", Arial`; ctx.textAlign='center'; ctx.direction='rtl';
+  ctx.fillText('זירת הבוס', sx+37*z, sy-290*z);
+}
+// ציור דמות (שחקן/בן לוויה) – frames: idle / walk_0..3 ; גובה בפיקסלי עולם
+function drawCharacterSprite(char, frame, x, groundY, facing, h){
+  const im = IMG[char+'_'+frame];
+  if (!im || !im.naturalWidth) return;
+  const c = CHARACTERS[char];
+  const sc = h / im.naturalHeight, w = im.naturalWidth*sc;
+  ctx.save(); ctx.translate(x, groundY); ctx.scale(facing, 1);
+  ctx.imageSmoothingEnabled = !c.pix;
+  ctx.drawImage(im, -w/2, -h, w, h);
+  ctx.restore();
+}
+function drawPlayer(){
+  const p = player;
+  const [sx, sy] = W2S(p.x, p.y);
+  const z = cam.zoom, c = CHARACTERS[p.char];
+  const moving = Math.abs(p.vx) > 10 && p.grounded;
+  let frame = 'idle';
+  if (!p.grounded) frame = 'walk_0';
+  else if (moving) frame = 'walk_' + (Math.floor(p.anim*9)%4);
+  // צל
+  ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(sx, groundScreenY()+2, 38*z, 9*z, 0, 0, Math.PI*2); ctx.fill();
+  ctx.save();
+  if (p.invT > 0 && Math.floor(p.invT*20)%2===0) ctx.globalAlpha = 0.45;
+  if (p.dead) { ctx.translate(sx, sy); ctx.rotate(p.facing*Math.PI/2*Math.min(1,p.hurtT)); ctx.translate(-sx,-sy); }
+  // תנופת תקיפה קלה
+  let lunge = 0; if (p.atkT > 0 && WEAPONS[p.weapon].kind === 'melee') lunge = p.facing*Math.sin(p.atkT/0.28*Math.PI)*12*z;
+  if (hitGlowActive()) { ctx.shadowColor = settings.hbColBody; ctx.shadowBlur = 28; }
+  if (level.def.inverted) { ctx.filter = 'brightness(0.85) contrast(1.15) saturate(0.9)'; ctx.shadowColor = '#c040ff'; ctx.shadowBlur = 22; }
+  drawCharacterSprite(p.char, frame, sx+lunge, sy, p.facing, c.h*z);
+  ctx.filter = 'none'; ctx.shadowBlur = 0;
+  if (p.hurtT > 0 && !p.dead) { ctx.globalCompositeOperation='source-atop'; }
+  ctx.restore();
+  // הנשק ביד – ציור החבר. הציר = היד של הדמות, הלהב/הראש למעלה, האחיזה בתחתית הציור
+  const w = WEAPONS[p.weapon];
+  const wi = IMG['w_'+p.weapon];
+  if (wi && wi.naturalWidth) {
+    const swing = p.atkT > 0 ? (1 - p.atkT/0.28) : 0;
+    const len = w.len*z, ww = wi.naturalWidth*len/wi.naturalHeight;
+    ctx.save();
+    if (w.kind === 'melee') {
+      // חרב: מוחזקת ביד הקדמית, הלהב מוטה קדימה; בשיסוע – מונפת מאחור וחותכת קדימה ולמטה
+      ctx.translate(sx + lunge + p.facing*30*z, sy - c.h*0.40*z); ctx.scale(p.facing, 1);
+      // מנוחה: הלהב מוטה קדימה־למעלה (0.8 רדיאן); שיסוע: מרימים אחורה ואז חותכים קדימה ולמטה
+      const ang = swing < 0.3 ? 0.8 - (swing/0.3)*1.5 : -0.7 + ((swing-0.3)/0.7)*3.0;
+      ctx.rotate(ang);
+      if (p.atkT > 0) { ctx.shadowColor = w.color; ctx.shadowBlur = 22; }
+      ctx.drawImage(wi, -ww/2, -len*0.86, ww, len);
+    } else if (w.kind === 'bow') {
+      // קשת: מוחזקת אנכית לפני הדמות, הקשת (החלק הכפוף) קדימה; במתיחה – החץ נמשך אחורה עם היד
+      ctx.translate(sx + p.facing*40*z, sy - c.h*0.44*z); ctx.scale(-p.facing, 1);
+      const pull = p.bowT > 0 ? (1 - p.bowT/0.26) : 0;
+      ctx.rotate(-0.08 + pull*0.06);
+      ctx.drawImage(wi, -ww/2, -len*0.5, ww, len);
+      const ai = IMG[w.arrow];
+      if (p.bowT > 0 && ai && ai.naturalWidth) {
+        const al = len*0.8, aw = ai.naturalWidth*al/ai.naturalHeight, back = pull*40*z;
+        ctx.save(); ctx.translate(back, 0); ctx.rotate(Math.PI/2);          // החץ אופקי, הראש קדימה
+        ctx.drawImage(ai, -aw/2, -al*0.55, aw, al); ctx.restore();
+        ctx.fillStyle = '#e8b890'; ctx.strokeStyle = '#6b3f2a'; ctx.lineWidth = 2;   // היד שמושכת את המיתר
+        ctx.beginPath(); ctx.arc(back + 6*z, 0, 9*z, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1.5;                               // המיתר הנמתח
+        ctx.beginPath(); ctx.moveTo(ww*0.3, -len*0.47); ctx.lineTo(back + 6*z, 0); ctx.lineTo(ww*0.3, len*0.47); ctx.stroke();
+      }
+    } else {
+      // שרביט: ביד, מוטה מעט; בברק – מופנה קדימה והראש זוהר
+      ctx.translate(sx + p.facing*30*z, sy - c.h*0.42*z); ctx.scale(p.facing, 1);
+      const ang = 0.3 + swing*0.9 + Math.sin(p.anim*3)*0.03;
+      ctx.rotate(ang);
+      ctx.shadowColor = w.color; ctx.shadowBlur = p.atkT > 0 ? 30 : 10;
+      ctx.drawImage(wi, -ww/2, -len*0.82, ww, len);
+      if (p.atkT > 0) { ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(0, -len*0.8, 12*z, 0, Math.PI*2); ctx.fill(); }
+    }
+    ctx.restore();
+  }
+  // מד קירור לכוח
+  if (p.specCd > 0) { ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(sx-30, sy-c.h*z-24, 60, 6); ctx.fillStyle=w.color; ctx.fillRect(sx-30, sy-c.h*z-24, 60*(1-p.specCd/w.special.cd), 6); }
+}
+function drawCompanion(){
+  const c = companion;
+  const [sx, sy] = W2S(c.x, c.y);
+  const moving = Math.abs(c.vx) > 10 && c.grounded;
+  const frame = moving ? 'walk_' + (Math.floor(c.anim*9)%4) : 'idle';
+  ctx.globalAlpha = 0.92;
+  drawCharacterSprite(c.char, frame, sx, sy, c.facing, CHARACTERS[c.char].h*0.95*cam.zoom);
+  ctx.globalAlpha = 1;
+}
+function drawEnemy(e){
+  const [sx, sy] = W2S(e.x, e.y);
+  const z = cam.zoom;
+  if (sx < -600 || sx > LW+600) return;
+  const im = e.boss ? IMG[(ELEMENTS[e.el].sprite || e.el)+'_boss'] : IMG[e.el+'_walk_'+(Math.floor(e.anim*8)%6)];
+  if (!im || !im.naturalWidth) return;
+  const h = e.h*z, sc = h/im.naturalHeight, w = im.naturalWidth*sc;
+  const bob = e.boss ? Math.sin(e.anim*1.6)*8*z : (e.hover ? 0 : 0);
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, e.alpha);
+  // צל
+  ctx.fillStyle = 'rgba(0,0,0,.4)'; ctx.beginPath(); ctx.ellipse(sx, groundScreenY()+2, w*0.35, 10*z, 0, 0, Math.PI*2); ctx.fill();
+  // הילה לבוס
+  if (e.boss) { const g = ctx.createRadialGradient(sx, sy-h*0.5, 10, sx, sy-h*0.5, w*0.7); g.addColorStop(0, ELEMENTS[e.el].color + (e.el==='shadow' ? 'cc' : '55')); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(sx-w, sy-h*1.3, 2*w, h*1.6); }
+  if (e.ally) { ctx.filter = 'hue-rotate(110deg) saturate(1.5) brightness(1.15)'; ctx.shadowColor = '#8dffb0'; }
+  else if (ELEMENTS[e.el].filter) ctx.filter = ELEMENTS[e.el].filter;
+  else if (level.def.inverted && level.bossBg !== 'hell') ctx.filter = 'grayscale(1) sepia(1) hue-rotate(225deg) saturate(3.2) brightness(0.75) contrast(1.25)';   // גוון סגול־שחור אחיד לכל המפלצות
+  ctx.translate(sx, sy + bob); ctx.scale(-e.facing, 1);   // הספרייטים פונים ימינה כברירת מחדל
+  if (e.windT > 0) { ctx.translate(0, -6*z); ctx.scale(1.06, 0.96); }
+  if (e.dead) { ctx.rotate(0.3*(1-e.alpha)); ctx.scale(1, Math.max(0.2, e.alpha)); }
+  ctx.shadowColor = e.ally ? '#8dffb0' : e.el==='shadow' ? '#e0b0ff' : ELEMENTS[e.el].color; ctx.shadowBlur = e.ally ? 26 : e.boss ? (e.el==='shadow' ? 50 : 30) : 12;
+  if (hitGlowActive()) { ctx.shadowColor = settings.hbColBody; ctx.shadowBlur = 34; }
+  ctx.drawImage(im, -w/2, -h, w, h);
+  if (e.hurtT > 0) { ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillRect(-w/2, -h, w, h); }
+  if (e.shockT > 0) { e.shockT -= 1/60; ctx.globalCompositeOperation = 'source-atop'; ctx.fillStyle = 'rgba(160,120,255,.5)'; ctx.fillRect(-w/2, -h, w, h); ctx.globalCompositeOperation = 'source-over'; ctx.strokeStyle = '#e0d0ff'; ctx.lineWidth = 2; for (let i=0;i<4;i++){ ctx.beginPath(); const ax = (Math.random()-0.5)*w, ay = -Math.random()*h; ctx.moveTo(ax, ay); ctx.lineTo(ax + (Math.random()-0.5)*40, ay + (Math.random()-0.5)*40); ctx.stroke(); } }
+  ctx.restore();
+  // מד חיים גדול מעל אויב רגיל (הפריימים של המשתמש)
+  if (!e.dead && !e.boss && !e.ally) { e.hpShow = e.hpShow === undefined ? e.hp : e.hpShow + (e.hp - e.hpShow)*0.25; drawMeter(sx-55*z, sy-h-26*z, 110*z, 14*z, e.hp/e.maxHp, e.hpShow/e.maxHp, '#e8192c'); }
+  if (!e.dead && e.ally) { drawMeter(sx-45*z, sy-h-22*z, 90*z, 10*z, e.allyT/8, e.allyT/8, '#8dffb0'); ctx.fillStyle = '#8dffb0'; ctx.font = `bold ${13*z}px "Segoe UI", Arial`; ctx.textAlign = 'center'; ctx.direction = 'rtl'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3; ctx.strokeText('בן ברית', sx, sy-h-30*z); ctx.fillText('בן ברית', sx, sy-h-30*z); }
+}
+function drawCoin(c){
+  const [sx, sy] = W2S(c.x, c.y);
+  if (c.heart) {   // לב ריפוי
+    ctx.save(); ctx.translate(sx, sy-14); const s = 1 + Math.sin(c.t*6)*0.12; ctx.scale(s, s);
+    ctx.fillStyle = '#ff4d6d'; ctx.strokeStyle = '#7a1030'; ctx.lineWidth = 2; ctx.shadowColor = '#ff4d6d'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(0, 10); ctx.bezierCurveTo(-14, -2, -8, -14, 0, -6); ctx.bezierCurveTo(8, -14, 14, -2, 0, 10); ctx.fill(); ctx.stroke();
+    ctx.restore(); return;
+  }
+  ctx.fillStyle = '#ffd766'; ctx.strokeStyle = '#8a6a10'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.ellipse(sx, sy-10, 8*Math.abs(Math.cos(c.t*6))+2, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+}
+function drawProjectile(pr){
+  const [sx, sy] = W2S(pr.x, pr.y);
+  const r = pr.r*cam.zoom;
+  ctx.save(); ctx.shadowColor = pr.color; ctx.shadowBlur = 20;
+  if (pr.darkwave) {   // גל אנרגיה אפלה – סהר שחור עם קצה סגול
+    ctx.translate(sx, sy); ctx.scale(pr.dir, 1); ctx.globalAlpha = Math.min(1, pr.life*3);
+    ctx.fillStyle = '#05000a'; ctx.shadowBlur = 26; ctx.beginPath(); ctx.ellipse(0, 0, r*0.7, r*1.6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = pr.color; ctx.lineWidth = 5*cam.zoom; ctx.beginPath(); ctx.arc(-r*0.5, 0, r*1.5, -1.1, 1.1); ctx.stroke();
+    ctx.restore(); return;
+  }
+  if (pr.blackhole) {  // חץ חור שחור – עיגול שחור עם טבעת סגולה מסתובבת
+    ctx.translate(sx, sy); ctx.rotate(pr.life*14);
+    ctx.fillStyle = '#000'; ctx.shadowColor = pr.color; ctx.shadowBlur = 30; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = pr.color; ctx.lineWidth = 3; ctx.setLineDash([r*0.8, r*0.5]); ctx.beginPath(); ctx.arc(0, 0, r*1.5, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(0, 0, r*1.05, 0, Math.PI*2); ctx.stroke();
+    ctx.restore(); return;
+  }
+  if (pr.soulorb) {    // נשמה – כדור לבנבן עם זנב
+    ctx.translate(sx, sy); ctx.shadowBlur = 24; const g2 = ctx.createRadialGradient(0,0,0,0,0,r*1.6); g2.addColorStop(0,'#fff'); g2.addColorStop(0.5,pr.color); g2.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(0,0,r*1.6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000'; ctx.fillRect(-r*0.35, -r*0.4, r*0.25, r*0.35); ctx.fillRect(r*0.1, -r*0.4, r*0.25, r*0.35);
+    ctx.restore(); return;
+  }
+  if (pr.crystal) {   // קריסטל דרקון – מעוין סגול מסתובב
+    ctx.translate(sx, sy); ctx.rotate(pr.life*10); ctx.fillStyle = pr.color; ctx.shadowBlur = 16;
+    ctx.beginPath(); ctx.moveTo(0,-r*1.4); ctx.lineTo(r*0.7,0); ctx.lineTo(0,r*1.4); ctx.lineTo(-r*0.7,0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.globalAlpha = .7; ctx.beginPath(); ctx.moveTo(0,-r*0.7); ctx.lineTo(r*0.3,0); ctx.lineTo(0,r*0.7); ctx.lineTo(-r*0.3,0); ctx.closePath(); ctx.fill();
+    ctx.restore(); return;
+  }
+  if (pr.dragon) {    // חץ דרקון – החץ הופך לדרקון סגול קטן בזמן המעוף
+    const di = IMG['dragon_walk_'+(Math.floor((2-pr.life)*12)%6)];
+    if (di && di.naturalWidth) { const dh = 64*cam.zoom, dw = di.naturalWidth*dh/di.naturalHeight; ctx.translate(sx, sy); const a = Math.atan2(pr.vy, pr.vx); ctx.rotate(a); if (pr.vx < 0) ctx.scale(1,-1); ctx.shadowBlur = 18; ctx.drawImage(di, -dw/2, -dh/2, dw, dh); }
+    ctx.restore(); return;
+  }
+  if (pr.arrow) {
+    const ai = IMG[pr.arrow];
+    if (ai && ai.naturalWidth) { const al = 90*cam.zoom, aw = ai.naturalWidth*al/ai.naturalHeight; ctx.translate(sx, sy); ctx.rotate(Math.atan2(pr.vy, pr.vx) + Math.PI/2); ctx.shadowBlur = 8; ctx.drawImage(ai, -aw/2, -al/2, aw, al); }
+    ctx.restore(); return;
+  }
+  if (pr.ground) { ctx.fillStyle = pr.color; ctx.globalAlpha = .85; for (let i=0;i<5;i++){ ctx.beginPath(); ctx.ellipse(sx + (i-2)*r*0.5, sy - 10 - Math.abs(Math.sin(pr.life*20+i))*r*0.8, r*0.5, r*0.9, 0, 0, Math.PI*2); ctx.fill(); } }
+  else { const g = ctx.createRadialGradient(sx,sy,0,sx,sy,r); g.addColorStop(0,'#fff'); g.addColorStop(0.4,pr.color); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+}
+function drawEffect(f){
+  const z = cam.zoom, k = f.t/f.life;
+  ctx.save();
+  if (f.type === 'slash' || f.type === 'claw') {
+    const [sx, sy] = W2S(f.x, f.y);
+    ctx.translate(sx, sy); ctx.scale(f.dir, 1);
+    ctx.strokeStyle = f.color; ctx.lineWidth = (f.type==='slash'?10:6)*z; ctx.globalAlpha = 1-k; ctx.shadowColor = f.color; ctx.shadowBlur = 20; ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(0, 0, f.r*z*(0.6+0.4*k), -1.3 + k*0.4, 0.9 + k*0.6); ctx.stroke();
+    ctx.lineWidth = 3*z; ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, f.r*z*(0.6+0.4*k)*0.85, -1.1 + k*0.4, 0.7 + k*0.6); ctx.stroke();
+  } else if (f.type === 'spin') {
+    const [sx, sy] = W2S(f.x, f.y);
+    ctx.translate(sx, sy); ctx.rotate(k*Math.PI*4);
+    ctx.strokeStyle = f.color; ctx.lineWidth = 12*z; ctx.globalAlpha = 1-k; ctx.shadowColor = f.color; ctx.shadowBlur = 24;
+    for (let i=0;i<3;i++){ ctx.beginPath(); ctx.arc(0,0,f.r*z*(0.5+0.5*k), i*2.1, i*2.1+1.4); ctx.stroke(); }
+  } else if (f.type === 'hit' || f.type === 'flash' || f.type === 'spark') {
+    const [sx, sy] = W2S(f.x, f.y);
+    const r = (f.r||22)*z*(f.type==='spark' ? (1-k) : (0.4+k));
+    ctx.globalAlpha = 1-k; ctx.fillStyle = f.color; ctx.shadowColor = f.color; ctx.shadowBlur = 16;
+    if (f.type === 'hit') { ctx.translate(sx, sy); for (let i=0;i<5;i++){ ctx.rotate(Math.PI*2/5); ctx.fillRect(r*0.3, -2*z, r, 4*z); } }
+    else { ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill(); }
+  } else if (f.type === 'ring') {
+    const [sx, sy] = W2S(f.x, f.y);
+    ctx.strokeStyle = f.color; ctx.lineWidth = 6*z*(1-k)+1; ctx.globalAlpha = 1-k; ctx.shadowColor = f.color; ctx.shadowBlur = 20;
+    ctx.beginPath(); ctx.arc(sx, sy, (f.r + (f.maxR-f.r)*k)*z, 0, Math.PI*2); ctx.stroke();
+  } else if (f.type === 'pillar') {
+    const [sx, sy] = W2S(f.x, 0);
+    if (f.t < f.warn) { ctx.fillStyle = f.color; ctx.globalAlpha = 0.25 + 0.25*Math.sin(f.t*25); ctx.fillRect(sx-60*z, sy-6, 120*z, 8); }
+    else { const a = 1 - (f.t-f.warn)/(f.life-f.warn); ctx.globalAlpha = a; const g = ctx.createLinearGradient(0, sy, 0, sy-360*z); g.addColorStop(0,'#fff'); g.addColorStop(0.3,f.color); g.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.shadowColor=f.color; ctx.shadowBlur=30; ctx.fillRect(sx-55*z, sy-360*z, 110*z, 360*z); }
+  } else if (f.type === 'breath') {
+    const [sx, sy] = W2S(f.x, f.y);
+    ctx.translate(sx, sy); ctx.scale(f.dir, 1); ctx.globalAlpha = k < 0.3 ? k/0.3 : 1-(k-0.3)/0.7;
+    const g = ctx.createLinearGradient(0,0,540*z,0); g.addColorStop(0,'#fff'); g.addColorStop(0.3,f.color); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.shadowColor = f.color; ctx.shadowBlur = 30;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(540*z, -220*z); ctx.lineTo(540*z, 200*z); ctx.fill();
+  } else if (f.type === 'annihilate') {   // השמדה: כדור שחור שמתכווץ ואז מתפוצץ
+    const [sx, sy] = W2S(f.x, f.y);
+    const r = (f.t < 0.6 ? 260*(1 - f.t/0.6) + 30 : 30 + (f.t-0.6)/0.4*300)*z;
+    ctx.globalAlpha = f.t < 0.6 ? 0.85 : 1 - (f.t-0.6)/0.4;
+    ctx.fillStyle = '#05000a'; ctx.shadowColor = f.color; ctx.shadowBlur = 40; ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = f.color; ctx.lineWidth = 4*z; ctx.beginPath(); ctx.arc(sx, sy, r*1.15, 0, Math.PI*2); ctx.stroke();
+  } else if (f.type === 'blackhole') {    // חור שחור נייח עם דיסק מסתובב
+    const [sx, sy] = W2S(f.x, f.y); const r = f.r*z*(k < 0.15 ? k/0.15 : k > 0.85 ? (1-k)/0.15 : 1);
+    ctx.translate(sx, sy);
+    ctx.fillStyle = '#000'; ctx.shadowColor = f.color; ctx.shadowBlur = 40; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+    for (let i=0;i<3;i++) { ctx.rotate(f.t*(2+i)); ctx.strokeStyle = i%2 ? f.color : '#ff2bd6'; ctx.lineWidth = 3; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.ellipse(0, 0, r*(1.6+i*0.4), r*(0.5+i*0.15), 0, 0, Math.PI*2); ctx.stroke(); }
+  } else if (f.type === 'bolt') {   // ברק משונן מקצה השרביט אל האויב
+    const [x1, y1] = W2S(f.x, f.y), [x2, y2] = W2S(f.x2, f.y2);
+    ctx.globalAlpha = 1-k; ctx.shadowColor = f.color; ctx.shadowBlur = 24; ctx.lineCap = 'round';
+    for (const [lw, col] of [[7*z, f.color], [2.5*z, '#fff']]) {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(x1, y1);
+      const n = 9; for (let i=1;i<n;i++){ const u = i/n; const jx = Math.sin(f.seed*7 + i*3.1 + f.t*60)*22*z, jy = Math.cos(f.seed*5 + i*2.3 + f.t*50)*22*z; ctx.lineTo(x1 + (x2-x1)*u + jx, y1 + (y2-y1)*u + jy); }
+      ctx.lineTo(x2, y2); ctx.stroke();
+    }
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x2, y2, 10*z*(1-k), 0, Math.PI*2); ctx.fill();
+  } else if (f.type === 'dragonally') {  // הדרקון המזומן
+    const [sx, sy] = W2S(f.x, f.y);
+    const di = f.sprite ? IMG[f.sprite] : IMG['dragon_walk_'+(Math.floor(f.t*8)%6)];
+    if (di && di.naturalWidth) { const dh = (f.size || 150)*z, dw = di.naturalWidth*dh/di.naturalHeight; ctx.translate(sx, sy + (f.sprite ? Math.sin(f.t*1.5)*10 : 0)); ctx.scale(f.sprite ? -f.dir : f.dir, 1); ctx.globalAlpha = k > 0.9 ? (1-k)*10 : (k < 0.1 ? k*10 : 1); if (f.filter) ctx.filter = f.filter; ctx.shadowColor = f.color; ctx.shadowBlur = 36; ctx.drawImage(di, -dw/2, -dh/2, dw, dh); ctx.filter = 'none'; }
+  } else if (f.type === 'sigil') {
+    if (f.x === undefined) { ctx.restore(); return; }
+    const [sx, sy] = W2S(f.x, f.y);
+    ctx.translate(sx, sy); ctx.rotate(f.t*4); ctx.strokeStyle = f.color; ctx.lineWidth = 3; ctx.shadowColor = f.color; ctx.shadowBlur = 18; ctx.globalAlpha = k > 0.85 ? (1-k)/0.15 : 1;
+    ctx.beginPath(); ctx.arc(0,0,16*z,0,Math.PI*2); ctx.stroke();
+    ctx.beginPath(); for (let i=0;i<5;i++){ const a = i*Math.PI*4/5; ctx.lineTo(Math.cos(a)*14*z, Math.sin(a)*14*z); } ctx.closePath(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// מד (חיים/מגן) בסגנון הפריימים שצייר המשתמש: מסגרת שחורה, פנים לבן, מילוי צבעוני – עם אנימציה חלקה
+// frac = הערך האמיתי, show = הערך המוצג (מדביק לאט), ghost = "צל" בהיר שמראה כמה ירד
+function drawMeter(x, y, w, h, frac, show, color, ghost){
+  const b = Math.max(1.5, h*0.11);
+  ctx.fillStyle = '#000'; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#fff'; ctx.fillRect(x+b, y+b, w-2*b, h-2*b);
+  const iw = w-2*b;
+  if (ghost !== undefined && ghost > frac) { ctx.fillStyle = color + '66'; ctx.fillRect(x+b, y+b, iw*Math.min(1,ghost), h-2*b); }
+  const f = Math.max(0, Math.min(1, show === undefined ? frac : show));
+  ctx.fillStyle = color; ctx.fillRect(x+b, y+b, iw*f, h-2*b);
+  // ברק עדין למעלה
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(x+b, y+b, iw*f, Math.max(1, (h-2*b)*0.3));
+}
+function drawHUD(){
+  const p = player;
+  // אנימציית המדים: המילוי מדביק את הערך האמיתי, ה"צל" יורד לאט יותר
+  const lerp = (a, b, k) => a + (b-a)*k;
+  p.hpShow = lerp(p.hpShow, p.hp, 0.2); p.hpGhost = p.hpGhost < p.hp ? p.hp : lerp(p.hpGhost, p.hp, 0.04);
+  p.armorShow = lerp(p.armorShow, p.armor, 0.2); p.armorGhost = p.armorGhost < p.armor ? p.armor : lerp(p.armorGhost, p.armor, 0.04);
+  const shake = p.hurtT > 0 ? (Math.random()-0.5)*4 : 0;
+  // שמאל למעלה: חיים (אדום) ומגן (כחול) – קטנים
+  drawMeter(24+shake, 22, 200, 28, p.hp/p.maxHp, p.hpShow/p.maxHp, '#e8192c', p.hpGhost/p.maxHp);
+  drawMeter(24, 56, 200, 20, p.armor/p.maxArmor, p.armorShow/p.maxArmor, '#00a2e8', p.armorGhost/p.maxArmor);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px "Segoe UI", Arial'; ctx.textAlign = 'left'; ctx.direction = 'ltr'; ctx.strokeStyle='#000'; ctx.lineWidth=3;
+  ctx.strokeText(`${Math.ceil(p.hp)} / ${p.maxHp}`, 232, 43); ctx.fillText(`${Math.ceil(p.hp)} / ${p.maxHp}`, 232, 43);
+  ctx.strokeText(`${Math.ceil(p.armor)} / ${p.maxArmor}`, 232, 73); ctx.fillText(`${Math.ceil(p.armor)} / ${p.maxArmor}`, 232, 73);
+  // ימין למעלה: הנשק הנוכחי + התקדמות לשדרוג + מטבעות
+  const w = WEAPONS[p.weapon], tier = tierOf(p.char);
+  const bx = LW-24-230, by = 22;
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(bx, by, 230, 64); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(bx, by, 230, 64);
+  const im = IMG['w_'+p.weapon]; if (im && im.naturalWidth) { const sc = Math.min(52/im.naturalWidth, 56/im.naturalHeight); const iw = im.naturalWidth*sc, ih = im.naturalHeight*sc; ctx.drawImage(im, bx+230-8-26-iw/2, by+32-ih/2, iw, ih); }
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 17px "Segoe UI", Arial'; ctx.textAlign = 'right'; ctx.direction = 'rtl';
+  ctx.fillText(w.name, bx+230-64, by+24);
+  ctx.font = '13px "Segoe UI", Arial'; ctx.fillStyle = '#ffd766';
+  const prog = tier === 0 ? `הריגות לשדרוג: ${Math.min(killsOf(lineOf(p.char)), UPGRADE_KILLS)}/${UPGRADE_KILLS}` : tier === 1 ? 'דרגה 2 · הדרקון = דרגה 3' : tier === 2 ? 'דרגת הדרקון' : tier === 3 ? 'דרגת הוויד · שרוד בחדר = כאוס' : tier === 4 ? 'נשק הכאוס' : 'נשק האור';
+  ctx.fillText(prog, bx+230-64, by+46);
+  if (tier === 0) { ctx.fillStyle = 'rgba(255,255,255,.25)'; ctx.fillRect(bx+8, by+54, 150, 4); ctx.fillStyle = '#ffd766'; ctx.fillRect(bx+8, by+54, 150*Math.min(1, killsOf(lineOf(p.char))/UPGRADE_KILLS), 4); }
+  ctx.fillStyle = '#ffd766'; ctx.font = 'bold 18px "Segoe UI", Arial';
+  ctx.strokeText('● ' + save.coins, LW-26, by+64+26); ctx.fillText('● ' + save.coins, LW-26, by+64+26);
+  // העולם ההפוך: מכפיל הנזק לפי החיים החסרים
+  if (level.def.inverted) {
+    const m = invertedMult();
+    ctx.fillStyle = m > 1.8 ? '#ff2bd6' : '#e0a0ff'; ctx.font = `bold ${16 + (m-1)*8}px "Segoe UI", Arial`; ctx.textAlign = 'left'; ctx.direction = 'rtl'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    const txt = 'כוח הפוך ×' + m.toFixed(1); ctx.strokeText(txt, 24, 104); ctx.fillText(txt, 24, 104);
+  }
+  // החדר המתכווץ: טיימר
+  if (level.survive) {
+    const left = Math.max(0, level.survive.total - level.t);
+    ctx.fillStyle = left < 10 ? '#ff2bd6' : '#fff'; ctx.font = 'bold 46px "Segoe UI", Arial'; ctx.textAlign = 'center'; ctx.direction = 'ltr'; ctx.strokeStyle = '#000'; ctx.lineWidth = 5;
+    ctx.strokeText(left.toFixed(1), LW/2, 62); ctx.fillText(left.toFixed(1), LW/2, 62);
+    ctx.font = 'bold 16px "Segoe UI", Arial'; ctx.direction = 'rtl'; ctx.strokeText('שרוד! הקירות מתכווצים', LW/2, 88); ctx.fillText('שרוד! הקירות מתכווצים', LW/2, 88);
+  }
+  // כפתורי המסך (ימין למטה): תקיפה + כוח (+ כפתורי מגע במצב טלפון)
+  drawActionButtons(w);
+  if (touchMode()) drawTouchButtons();
+  // מד בוס בראש המסך
+  const b = level.boss;
+  if (b && !b.dead && level.inBoss) {
+    b.hpShow = b.hpShow === undefined ? b.hp : b.hpShow + (b.hp - b.hpShow)*0.15;
+    drawMeter(LW/2-240, 18, 480, 26, b.hp/b.maxHp, b.hpShow/b.maxHp, '#e8192c');
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 20px "Segoe UI", Arial'; ctx.textAlign='center'; ctx.direction='rtl';
+    ctx.strokeText(b.title || ELEMENTS[b.el].name, LW/2, 68); ctx.fillText(b.title || ELEMENTS[b.el].name, LW/2, 68);
+    if (b.el === 'devil') { ctx.font = 'bold 14px "Segoe UI", Arial'; ctx.fillStyle = '#ffb090'; ctx.direction = 'ltr'; ctx.fillText(Math.ceil(b.hp) + ' / ' + b.maxHp, LW/2, 88); ctx.direction = 'rtl'; }
+  } else if (!level.inBoss) {
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 17px "Segoe UI", Arial'; ctx.textAlign='center'; ctx.direction='rtl';
+    const alive = enemies.filter(e=>!e.dead && !e.boss).length;
+    ctx.strokeText(`${level.def.title}   ·   אויבים: ${alive}`, LW/2, 40); ctx.fillText(`${level.def.title}   ·   אויבים: ${alive}`, LW/2, 40);
+  }
+  // באנר
+  if (bannerObj) {
+    const a = Math.min(1, bannerObj.t*2, (bannerObj.life-bannerObj.t)*1.5);
+    ctx.globalAlpha = Math.max(0,a);
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(0, LH/2-70, LW, 130);
+    ctx.fillStyle = '#ffd766'; ctx.font = 'bold 40px "Segoe UI", Arial'; ctx.textAlign='center'; ctx.direction='rtl'; ctx.fillText(bannerObj.title, LW/2, LH/2-14);
+    ctx.fillStyle = '#fff'; ctx.font = '22px "Segoe UI", Arial'; ctx.fillText(bannerObj.sub, LW/2, LH/2+30);
+    ctx.globalAlpha = 1;
+  }
+  if (p.dead) { ctx.fillStyle='rgba(120,0,0,.35)'; ctx.fillRect(0,0,LW,LH); }
+}
+// כפתורי המגע: תנועה, קפיצה, E, השהיה
+function drawTouchButtons(){
+  for (const name in TOUCH_BTNS) {
+    const b = TOUCH_BTNS[name], down = (touchDown[name]||0) > 0;
+    if (down && !b.hold) touchDown[name]--;
+    ctx.save(); ctx.translate(b.x + b.w/2, b.y + b.h/2); if (down) ctx.scale(0.92, 0.92);
+    ctx.fillStyle = down ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.5)'; ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(-b.w/2, -b.h/2, b.w, b.h, name === 'pause' ? 10 : 18); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.direction = 'ltr'; ctx.font = `bold ${name === 'pause' ? 18 : b.w > 80 ? 40 : 30}px Arial`;
+    ctx.fillText(b.label, 0, b.sub ? 8 : (name === 'pause' ? 7 : 14));
+    if (b.sub) { ctx.font = '12px "Segoe UI", Arial'; ctx.direction = 'rtl'; ctx.fillStyle = '#ccc'; ctx.fillText(b.sub, 0, b.h/2 - 10); }
+    ctx.restore();
+  }
+}
+// כפתור התקיפה המצויר (שיסוע / ירי / ברק) וכפתור הכוח – לחיצה עליהם עם העכבר מפעילה אותם
+function drawActionButtons(w){
+  const p = player;
+  const btn = (b, label, sub, color, pressedNow, cdFrac) => {
+    ctx.save();
+    ctx.translate(b.x + b.w/2, b.y + b.h/2); if (pressedNow) ctx.scale(0.92, 0.92);
+    ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.strokeStyle = color; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.roundRect(-b.w/2, -b.h/2, b.w, b.h, 14); ctx.fill(); ctx.stroke();
+    if (cdFrac > 0) { ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0, 0, b.w*0.7, -Math.PI/2, -Math.PI/2 + Math.PI*2*cdFrac); ctx.closePath(); ctx.clip(); ctx.fillRect(-b.w/2, -b.h/2, b.w, b.h); }
+    ctx.restore();
+    ctx.save(); ctx.translate(b.x + b.w/2, b.y + b.h/2);
+    const im = IMG['w_'+p.weapon];
+    if (im && im.naturalWidth && b.w > 80) { const sc = Math.min(40/im.naturalWidth, 52/im.naturalHeight); const iw = im.naturalWidth*sc, ih = im.naturalHeight*sc; ctx.save(); ctx.rotate(0.6); ctx.drawImage(im, -iw/2, -ih/2 - 6, iw, ih); ctx.restore(); }
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.direction = 'rtl'; ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+    ctx.font = `bold ${b.w > 80 ? 20 : 16}px "Segoe UI", Arial`; ctx.strokeText(label, 0, b.h/2 - 14); ctx.fillText(label, 0, b.h/2 - 14);
+    ctx.font = '12px "Segoe UI", Arial'; ctx.fillStyle = '#ccc'; ctx.fillText(sub, 0, -b.h/2 + 16);
+    ctx.restore();
+  };
+  btn(BTN_ATK, w.attackName, 'X / לחיצה', w.color, p.atkT > 0 || mouseDownBtn === 1, 0);
+  btn(BTN_SPEC, w.special.name, 'C', '#ffd766', mouseDownBtn === 2, p.specCd > 0 ? p.specCd / w.special.cd : 0);
+  if (save.summon1) btn(BTN_SUM1, 'זימון', 'Z', '#ffffff', mouseDownBtn === 3, p.sumCd1 > 0 ? p.sumCd1 / SUMMON_CD : 0);
+  if (save.summon2) btn(BTN_SUM2, 'היקום', 'V', '#4fd8ff', mouseDownBtn === 4, p.sumCd2 > 0 ? p.sumCd2 / SUMMON_CD : 0);
+}
+
+// ---------- הגדרות (נשמרות בנפרד) ----------
+const SETTINGS_KEY = 'oath_settings_v1';
+let settings = { difficulty:'normal', touch:'auto', hitboxes:false, hbStyle:'box', hbBody:true, hbProj:true, hbRange:false, hbColBody:'#4cff4c', hbColProj:'#4cffe0', hbColRange:'#ffe066', hbColDanger:'#ff5555', volume:0.6, muted:false };
+function loadSettings(){ try { const o = JSON.parse(localStorage.getItem(SETTINGS_KEY)); if (o) settings = Object.assign(settings, o); } catch(e){} }
+function writeSettings(){ try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e){} }
+function setToggle(id, on, onText, offText){ const b = $(id); b.classList.toggle('on', on); b.textContent = on ? (onText||'פעיל') : (offText||'כבוי'); }
+function refreshSettingsUI(){
+  setToggle('tglHitbox', settings.hitboxes);
+  $('playerIdNote').textContent = playerIdText();
+  $('creatorPanel').style.display = profile.creator ? '' : 'none';
+  if (profile.creator) { setToggle('chGod', cheats().god); setToggle('chInf', cheats().inf); }
+  $('hbOptions').style.display = settings.hitboxes ? '' : 'none';
+  setToggle('hbStyleBox', settings.hbStyle === 'box', 'ריבוע', 'ריבוע');
+  setToggle('hbStyleGlow', settings.hbStyle === 'glow', 'זוהר סביב הדמות', 'זוהר סביב הדמות');
+  setToggle('hbBody', settings.hbBody); setToggle('hbProj', settings.hbProj); setToggle('hbRange', settings.hbRange);
+  $('hbColBody').value = settings.hbColBody; $('hbColProj').value = settings.hbColProj; $('hbColRange').value = settings.hbColRange;
+  setToggle('tglMute', settings.muted, 'מושתק', 'כבוי');
+  for (const [id, d] of [['diffEasy','easy'],['diffNormal','normal'],['diffHard','hard']]) setToggle(id, settings.difficulty === d, $(id).textContent, $(id).textContent);
+  setToggle('tglTouch', touchMode(), settings.touch === 'auto' ? 'פעיל (אוטומטי)' : 'פעיל', 'כבוי');
+  $('musicVol').value = Math.round(settings.volume*100);
+  $('musicName').textContent = music.name ? 'שיר: ' + music.name : 'לא נבחר שיר – אפשר לבחור קובץ mp3 / wav / ogg מהמחשב';
+  $('ytName').textContent = settings.ytId ? 'שיר יוטיוב פעיל: ' + (settings.ytUrl || settings.ytId) : 'הדבק קישור לשיר מיוטיוב ולחץ "נגן" – השיר מתנגן בלופ (צריך אינטרנט)';
+  $('ytLink').value = settings.ytUrl || '';
+}
+let settingsReturn = 'lobby';
+function openSettings(){ settingsReturn = state === 'pause' ? 'pause' : 'lobby'; state = 'settings'; refreshSettingsUI(); showOverlay('settings'); }
+$('btnSettings').onclick = openSettings; $('btnPauseSettings').onclick = openSettings;
+$('btnNameOk').onclick = confirmName;
+$('playerName').addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); e.stopPropagation(); });
+$('btnRename').onclick = () => { openNameScreen(); };
+$('playerName').addEventListener('input', () => { $('creatorPinRow').style.display = isCreatorName($('playerName').value) ? '' : 'none'; $('nameError').textContent = ''; });
+$('creatorPin').addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); e.stopPropagation(); });
+// ---- צ'יטים של היוצר (רק אחרי אימות קוד היוצר) ----
+$('chGod').onclick = () => { cheats().god = !cheats().god; writeProfile(); refreshSettingsUI(); };
+$('chInf').onclick = () => { cheats().inf = !cheats().inf; writeProfile(); refreshSettingsUI(); };
+$('chCoins').onclick = () => { if (!profile.creator) return; save.coins += 1000; writeSave(); $('chCoins').textContent = '+1000 (' + save.coins + ')'; };
+$('chAll').onclick = () => { if (!profile.creator) return; for (const ln of ['sword','bow','wand']) { profile.dragon[ln] = true; profile.chaos[ln] = true; } save.inverted = true; save.white = true; save.summon1 = true; save.summon2 = true; writeProfile(); writeSave(); $('chAll').textContent = 'נפתח'; };
+$('chGo').onclick = () => { if (!profile.creator) return; const n = Math.max(1, Math.min(LEVELS.length, parseInt($('chLevel').value) || 1)); save.level = n; if (n >= 8) save.inverted = true; if (n >= 11) { save.white = true; save.summon1 = true; } if (n >= 18) save.summon2 = true; if (save.character === 'hero' && !save.line.hero) save.line.hero = 'sword'; writeSave(); startLevel(n); };
+// ---- קוד המשחק בתוך ההגדרות: הצגה, עריכה, הרצה והורדה ----
+function gameSource(){ return '<!DOCTYPE html>\n' + document.documentElement.outerHTML; }
+$('chCode').onclick = () => {
+  if (!profile.creator) return;
+  const box = $('codeBox'); const open = box.style.display === 'none';
+  box.style.display = open ? '' : 'none'; $('chRun').style.display = open ? '' : 'none'; $('chDownload').style.display = open ? '' : 'none';
+  $('chCode').textContent = open ? 'הסתר קוד' : 'הצג קוד';
+  if (open && !box.value) box.value = gameSource();
+};
+$('codeBox').addEventListener('keydown', e => e.stopPropagation());
+$('chRun').onclick = () => { if (!profile.creator) return; const src = $('codeBox').value; document.open(); document.write(src); document.close(); };
+$('chDownload').onclick = () => {
+  if (!profile.creator) return;
+  const blob = new Blob([$('codeBox').value || gameSource()], { type:'text/html' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'game_edited.html'; document.body.appendChild(a); a.click(); a.remove();
+};
+// ---- בוט היוצר: פקודות קטנות בעברית ----
+const HEB_NUMS = { 'אלף':1000, 'אלפיים':2000, 'מאה':100, 'מאתיים':200, 'עשר':10, 'עשרים':20, 'שלושים':30, 'ארבעים':40, 'חמישים':50, 'שישים':60, 'שבעים':70, 'שמונים':80, 'תשעים':90, 'אחת':1, 'אחד':1, 'שתיים':2, 'שניים':2, 'שתי':2, 'שני':2, 'שלוש':3, 'שלושה':3, 'ארבע':4, 'ארבעה':4, 'חמש':5, 'חמישה':5, 'שש':6, 'שישה':6, 'שבע':7, 'שבעה':7, 'שמונה':8, 'תשע':9, 'תשעה':9 };
+function parseNumber(txt){
+  const d = txt.match(/\d+/); if (d) return parseInt(d[0]);
+  const words = txt.replace(/[,.!?]/g, ' ').split(/\s+/); let total = 0, found = false, last = 0;
+  for (const w of words) { const v = HEB_NUMS[w]; if (v === undefined) continue; found = true; if (v >= 100 && last && last < 10) { total += last * v - last; last = 0; } else if (v >= 100) total += v; else { total += v; last = v; } }
+  if (txt.includes('חמש מאות') || txt.includes('חמשה מאות')) return 500; if (txt.includes('שלוש מאות')) return 300; if (txt.includes('ארבע מאות')) return 400;
+  if (txt.includes('שלושת אלפים') || txt.includes('שלוש אלפים')) return 3000; if (txt.includes('חמשת אלפים') || txt.includes('חמש אלפים')) return 5000; if (txt.includes('עשרת אלפים') || txt.includes('עשר אלפים')) return 10000;
+  return found ? total : null;
+}
+function creatorBot(text){
+  if (!profile.creator) return 'רק היוצר יכול לדבר עם הבוט.';
+  const t = text.trim(); const n = parseNumber(t); const has = (...ks) => ks.some(k => t.includes(k));
+  const off = has('כבה', 'בטל', 'תפסיק', 'בלי');
+  if (has('מתנה', 'קוד')) { const amt = n || 500; const code = makeGiftCode(amt); $('giftCode').textContent = code; return 'קוד מתנה של ' + amt + ' מטבעות: ' + code + ' (תן אותו לשחקן, הוא מקליד ב"מימוש קוד מתנה")'; }
+  if (has('מטבע', 'כסף', 'זהב')) { const amt = n || 1000; save.coins += amt; writeSave(); return 'קיבלת ' + amt + ' מטבעות. יש לך עכשיו ' + save.coins + '.'; }
+  if (has('ערכ', 'רפואה')) { const amt = n || 1; save.medkits = (save.medkits || 0) + amt; writeSave(); return 'הוספתי ' + amt + ' ערכות רפואה. יש לך ' + save.medkits + '.'; }
+  if (has('שלב')) { if (!n) return 'לאיזה שלב? למשל: "עבור לשלב 12" (1 עד ' + LEVELS.length + ').'; $('chLevel').value = Math.max(1, Math.min(LEVELS.length, n)); $('chGo').click(); return 'קופץ לשלב ' + $('chLevel').value + '.'; }
+  if (has('אינסוף', 'אלמוות', 'בלתי מנוצח', 'צ\'יט')) { cheats().god = !off; cheats().inf = !off; writeProfile(); refreshSettingsUI(); return off ? 'הצ\'יטים כבויים.' : 'אינסוף חיים, מגן ומהלכים – פעיל.'; }
+  if (has('חיים', 'בריאות')) { if (n) { save.hpLevel = (save.hpLevel || 0) + Math.max(1, Math.round(n / 50)); } if (player) player.hp = player.maxHp; writeSave(); return n ? 'הוספתי חיים (רמת חיים ' + save.hpLevel + ') וריפאתי אותך.' : 'ריפאתי אותך למקסימום.'; }
+  if (has('מגן', 'שריון')) { if (n) { save.armorLevel = (save.armorLevel || 0) + Math.max(1, Math.round(n / 50)); } if (player) player.armor = player.maxArmor; writeSave(); return n ? 'הוספתי שריון (רמת שריון ' + save.armorLevel + ') ומילאתי את המגן.' : 'מילאתי את המגן.'; }
+  if (has('נשק', 'חרב', 'קשת', 'שרביט', 'זימון')) { $('chAll').click(); return 'כל הנשקים והזימונים פתוחים.'; }
+  if (has('שם')) { openNameScreen(); return 'פתחתי את מסך השם.'; }
+  if (has('שלום', 'היי', 'הי')) return 'שלום ' + (profile.name || '') + ' 👑 מה תרצה? מטבעות, חיים, מגן, שלב, ערכות, נשקים, אינסוף, מתנה.';
+  return 'לא הבנתי. נסה: "תביא לי אלף מטבעות", "תן לי חיים", "עבור לשלב 12", "3 ערכות רפואה", "פתח את כל הנשקים", "אינסוף חיים", "מתנה 500".';
+}
+$('botSend').onclick = () => { const t = $('botInput').value; if (!t.trim()) return; $('botReply').textContent = creatorBot(t); $('botInput').value = ''; };
+$('botInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('botSend').click(); e.stopPropagation(); });
+// ---- קודי מתנה: OB-<סכום>-<מספר>-<חתימה>. החתימה מחושבת מקוד היוצר (hash) – רק היוצר יכול ליצור קודים תקינים ----
+function giftSig(amt, nonce){ return sha256('gift:' + amt + ':' + nonce + ':' + CREATOR_PIN_HASH).slice(0, 6).toUpperCase(); }
+function makeGiftCode(amt){ const nonce = Math.floor(Math.random()*36*36*36).toString(36).toUpperCase().padStart(3, '0'); return 'OB-' + amt + '-' + nonce + '-' + giftSig(amt, nonce); }
+$('giftMake').onclick = () => { if (!profile.creator) return; const amt = Math.max(1, parseInt($('giftAmount').value) || 0); $('giftCode').textContent = makeGiftCode(amt); };
+$('giftRedeem').onclick = () => {
+  const code = $('giftInput').value.trim().toUpperCase(); const m = code.match(/^OB-(\d+)-([0-9A-Z]{3})-([0-9A-F]{6})$/);
+  if (!m) { $('giftNote').textContent = 'הקוד לא תקין. הוא נראה כמו OB-500-A1B-2C3D4E'; return; }
+  const amt = parseInt(m[1]);
+  if (giftSig(amt, m[2]) !== m[3]) { $('giftNote').textContent = 'הקוד לא תקין.'; return; }
+  profile.gifts = profile.gifts || [];
+  if (profile.gifts.includes(code)) { $('giftNote').textContent = 'כבר מימשת את הקוד הזה.'; return; }
+  profile.gifts.push(code); writeProfile(); save.coins += amt; writeSave(); $('giftInput').value = '';
+  $('giftNote').textContent = 'קיבלת ' + amt + ' מטבעות מהיוצר! יש לך עכשיו ' + save.coins + '.';
+};
+$('giftInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('giftRedeem').click(); e.stopPropagation(); });
+$('btnSettingsClose').onclick = () => { if (settingsReturn === 'pause') { state = 'pause'; showOverlay('pause'); } else { state = 'lobby'; showOverlay('lobby'); } };
+$('tglHitbox').onclick = () => { settings.hitboxes = !settings.hitboxes; writeSettings(); refreshSettingsUI(); };
+$('hbStyleBox').onclick = () => { settings.hbStyle = 'box'; writeSettings(); refreshSettingsUI(); };
+$('hbStyleGlow').onclick = () => { settings.hbStyle = 'glow'; writeSettings(); refreshSettingsUI(); };
+for (const k of ['hbBody','hbProj','hbRange']) $(k).onclick = () => { settings[k] = !settings[k]; writeSettings(); refreshSettingsUI(); };
+for (const k of ['hbColBody','hbColProj','hbColRange']) $(k).oninput = () => { settings[k] = $(k).value; writeSettings(); };
+$('tglMute').onclick = () => { settings.muted = !settings.muted; writeSettings(); applyMusicVolume(); refreshSettingsUI(); };
+for (const [id, d] of [['diffEasy','easy'],['diffNormal','normal'],['diffHard','hard']]) $(id).onclick = () => { settings.difficulty = d; writeSettings(); refreshSettingsUI(); };
+$('tglTouch').onclick = () => { settings.touch = !touchMode(); writeSettings(); refreshSettingsUI(); };
+$('musicVol').oninput = () => { settings.volume = $('musicVol').value/100; writeSettings(); applyMusicVolume(); };
+$('musicFile').onchange = () => { const f = $('musicFile').files[0]; if (f) setMusic(f, f.name, true); };
+$('musicRemove').onclick = () => { clearMusic(); };
+
+// ---------- מוזיקה: קובץ מהמחשב, מתנגן בלופ, נשמר ב-IndexedDB לפעם הבאה ----------
+const music = { audio: new Audio(), name:'', url:'' };
+music.audio.loop = true;
+function applyMusicVolume(){
+  music.audio.volume = settings.muted ? 0 : settings.volume;
+  if (yt.player && yt.ready) { try { yt.player.setVolume(Math.round(settings.volume*100)); if (settings.muted) yt.player.mute(); else yt.player.unMute(); } catch(e){} }
+}
+
+// ---------- שיר מיוטיוב: מדביקים קישור, הנגן הקטן בפינה מנגן בלופ ----------
+const yt = { player:null, ready:false, apiLoading:false, wantPlay:false };
+// מוציאים את מזהה הסרטון מכל צורת קישור של יוטיוב
+function ytIdFrom(url){
+  if (!url) return null;
+  url = url.trim();
+  const m = url.match(/(?:youtu\.be\/|v=|\/shorts\/|\/embed\/|\/live\/)([A-Za-z0-9_-]{11})/) || url.match(/^([A-Za-z0-9_-]{11})$/);
+  return m ? m[1] : null;
+}
+function ytLoadApi(){
+  if (window.YT && window.YT.Player) { ytCreate(); return; }
+  if (yt.apiLoading) return;
+  yt.apiLoading = true;
+  window.onYouTubeIframeAPIReady = ytCreate;
+  const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api';
+  tag.onerror = () => { $('ytName').textContent = 'לא הצלחתי לטעון את יוטיוב – בדוק חיבור לאינטרנט'; yt.apiLoading = false; };
+  document.head.appendChild(tag);
+}
+function ytCreate(){
+  if (!settings.ytId) return;
+  $('ytBox').classList.add('show');
+  if (yt.player) { try { yt.player.loadVideoById(settings.ytId); } catch(e){} return; }
+  yt.player = new YT.Player('ytPlayer', {
+    width:'200', height:'113', videoId: settings.ytId,
+    playerVars: { autoplay:1, loop:1, playlist: settings.ytId, controls:1, rel:0, modestbranding:1, playsinline:1 },
+    events: {
+      onReady: () => { yt.ready = true; applyMusicVolume(); yt.player.playVideo(); },
+      onStateChange: (e) => { if (e.data === 0) yt.player.playVideo(); },   // לופ
+      onError: () => { $('ytName').textContent = 'יוטיוב לא מצליח לנגן את הסרטון הזה (אולי חסום להטמעה) – נסה שיר אחר'; },
+    },
+  });
+}
+function ytSet(url){
+  const id = ytIdFrom(url);
+  if (!id) { $('ytName').textContent = 'זה לא נראה כמו קישור של יוטיוב. העתק את הקישור מסרגל הכתובת של הסרטון.'; return; }
+  settings.ytId = id; settings.ytUrl = url.trim(); writeSettings();
+  music.audio.pause();                       // לא שני שירים ביחד
+  refreshSettingsUI(); ytLoadApi();
+}
+function ytClear(){
+  settings.ytId = ''; settings.ytUrl = ''; writeSettings();
+  if (yt.player) { try { yt.player.stopVideo(); } catch(e){} }
+  $('ytBox').classList.remove('show'); refreshSettingsUI();
+}
+$('ytPlay').onclick = () => ytSet($('ytLink').value);
+$('ytLink').addEventListener('keydown', e => { if (e.key === 'Enter') ytSet($('ytLink').value); e.stopPropagation(); });
+$('ytRemove').onclick = ytClear;
+$('ytTiny').onclick = () => { $('ytBox').classList.toggle('tiny'); $('ytTiny').textContent = $('ytBox').classList.contains('tiny') ? '▢' : '▁'; };
+function musicDB(){ return new Promise((res, rej) => { const r = indexedDB.open('oath_music', 1); r.onupgradeneeded = () => r.result.createObjectStore('files'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function setMusic(blob, name, persist){
+  if (persist && settings.ytId) ytClear();
+  if (music.url) URL.revokeObjectURL(music.url);
+  music.url = URL.createObjectURL(blob); music.name = name;
+  music.audio.src = music.url; applyMusicVolume();
+  music.audio.play().catch(()=>{});
+  refreshSettingsUI();
+  if (persist) { try { const db = await musicDB(); const tx = db.transaction('files', 'readwrite'); tx.objectStore('files').put({ blob, name }, 'music'); } catch(e){ console.warn('music save failed', e); } }
+}
+async function clearMusic(){
+  music.audio.pause(); music.audio.removeAttribute('src'); music.name = ''; refreshSettingsUI();
+  try { const db = await musicDB(); db.transaction('files', 'readwrite').objectStore('files').delete('music'); } catch(e){}
+}
+async function loadMusic(){
+  try { const db = await musicDB(); const req = db.transaction('files').objectStore('files').get('music'); req.onsuccess = () => { if (req.result) setMusic(req.result.blob, req.result.name, false); }; } catch(e){}
+}
+// דפדפנים מרשים לנגן רק אחרי פעולה של המשתמש – מתחילים בלחיצה/מקש הראשונים
+function tryPlayMusic(){
+  if (settings.ytId) { if (!yt.player) ytLoadApi(); else if (yt.ready) { try { if (yt.player.getPlayerState() !== 1) yt.player.playVideo(); } catch(e){} } return; }
+  if (music.name && music.audio.paused) music.audio.play().catch(()=>{});
+}
+window.addEventListener('keydown', tryPlayMusic); window.addEventListener('mousedown', tryPlayMusic);
+
+// ---------- אתחול ----------
+loadSave(); loadProfile(); loadSettings(); applyMusicVolume(); loadMusic();
+loadAll(() => {
+  // מסך טעינה של 2 שניות לפחות
+  setTimeout(() => { if (loadErrors.length) showErr('Missing assets:\n' + loadErrors.join('\n')); gotoLobby(); }, Math.max(0, 2000 - stateT*1000));
+});
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
