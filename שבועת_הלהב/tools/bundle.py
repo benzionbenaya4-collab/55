@@ -26,3 +26,16 @@ os.makedirs(os.path.join(ROOT, 'dist'), exist_ok=True)
 dst = os.path.join(ROOT, 'dist', 'oath_of_the_blade.html')
 open(dst, 'w', encoding='utf-8').write(html + js)
 print('bundle written:', dst, '%.1f MB' % (os.path.getsize(dst)/1e6))
+
+# ---------- sw.js לאתר (GitHub Pages) – שומר את כל המשחק כדי שיעבוד גם בלי אינטרנט ----------
+import hashlib, json
+SITE = os.path.dirname(ROOT)                      # תיקיית האתר (המאגר)
+folder = os.path.basename(ROOT)                   # שבועת_הלהב
+h = hashlib.sha1(src.encode('utf-8'))
+for f in sorted(files): h.update(open(os.path.join(ROOT, f), 'rb').read())
+precache = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', folder + '/game.html'] + \
+           [folder + '/' + f for f in sorted(files)]
+sw = open(os.path.join(ROOT, 'tools', 'sw_template.js'), encoding='utf-8').read()
+sw = sw.replace('__VERSION__', h.hexdigest()[:10]).replace('__FILES__', json.dumps(precache, ensure_ascii=False))
+open(os.path.join(SITE, 'sw.js'), 'w', encoding='utf-8', newline='\n').write(sw)
+print('sw.js written:', len(precache), 'files')

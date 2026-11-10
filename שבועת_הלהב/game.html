@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>שבועת הלהב – Oath of the Blade</title>
+<meta name="theme-color" content="#111111">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="icon" href="../icon-192.png">
+<link rel="apple-touch-icon" href="../icon-192.png">
 <style>
   html, body { margin:0; padding:0; background:#000; height:100%; overflow:hidden; font-family: "Segoe UI", Arial, sans-serif; color:#fff; user-select:none; }
   #game { display:block; position:absolute; left:0; top:0; touch-action:none; }
@@ -77,9 +81,17 @@
   <button id="btnSwap" class="btn small">⇄ החלף דמות</button>
   <button id="btnShop" class="btn">חנות</button>
   <button id="btnSettings" class="btn">הגדרות</button>
+  <button id="btnInstall" class="btn small" style="position:absolute;top:14px;left:14px">📲 התקן את המשחק במחשב</button>
   <button id="btnNew" class="btn small" style="display:none">משחק חדש (מוחק שמירה)</button>
   <div class="hint" id="creatorBadge" style="display:none;color:#ffd766">👑 מצב יוצר פעיל – הצ'יטים בהגדרות</div>
   <div class="hint">חצים ← → תנועה · רווח קפיצה · X / לחיצה = תקיפה · C כוח מיוחד · E המשך · ESC תפריט</div>
+</div>
+<div id="installHelp" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.75);align-items:center;justify-content:center">
+  <div class="panel" style="max-width:560px;text-align:right">
+    <button class="xbtn" id="btnInstallClose">✕</button>
+    <h2>📲 התקנת המשחק</h2>
+    <div id="installText" style="font-size:18px;line-height:1.6"></div>
+  </div>
 </div>
 
 <!-- ===== חנות ===== -->
@@ -2376,6 +2388,33 @@ loadAll(() => {
   setTimeout(() => { if (loadErrors.length) showErr('Missing assets:\n' + loadErrors.join('\n')); gotoLobby(); }, Math.max(0, 2000 - stateT*1000));
 });
 requestAnimationFrame(loop);
+
+// ---------- התקנה כאפליקציה (PWA) ----------
+// עובד מהאתר ב-GitHub Pages: הדפדפן מתקין את המשחק כמו תוכנה, והוא עובד גם בלי אינטרנט.
+const SITE_URL = 'https://benzionbenaya4-collab.github.io/55/';
+let installPrompt = null;
+const isInstalled = () => matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+const onSite = () => location.protocol === 'https:' && location.hostname.endsWith('github.io');
+if (isInstalled()) $('btnInstall').style.display = 'none';
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+window.addEventListener('appinstalled', () => { installPrompt = null; $('btnInstall').style.display = 'none'; $('installHelp').style.display = 'none'; });
+function showInstallHelp(html){ $('installText').innerHTML = html; $('installHelp').style.display = 'flex'; }
+$('btnInstall').addEventListener('click', async () => {
+  if (installPrompt) {
+    installPrompt.prompt();
+    try { await installPrompt.userChoice; } catch (e) {}
+    installPrompt = null; return;
+  }
+  if (!onSite()) {
+    showInstallHelp('אפשר להתקין את המשחק רק מהאתר שלו:<br><a href="' + SITE_URL + '" target="_blank" rel="noopener" style="color:#ffd766" dir="ltr">' + SITE_URL + '</a><br><br>פתחו את הקישור ב-Chrome או Edge ולחצו שוב על "התקן את המשחק".');
+    return;
+  }
+  showInstallHelp('<b>במחשב (Chrome / Edge):</b> לחצו על סמל ההתקנה בצד ימין של שורת הכתובת (מסך עם חץ ⊕), או בתפריט ⋮ ← "שמירה ושיתוף" ← "התקנת הדף כאפליקציה".<br><br>' +
+    '<b>באייפון (Safari):</b> כפתור השיתוף ← "הוסף למסך הבית".<br><b>באנדרואיד (Chrome):</b> תפריט ⋮ ← "הוספה למסך הבית" / "התקנת אפליקציה".<br><br>' +
+    'אחרי ההתקנה המשחק נפתח מסמל משלו, ועובד גם בלי אינטרנט. השמירה נשארת.');
+});
+$('btnInstallClose').addEventListener('click', () => { $('installHelp').style.display = 'none'; });
+if ('serviceWorker' in navigator && onSite()) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
 </script>
 </body>
 </html>
