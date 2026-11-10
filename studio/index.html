@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b0b14">
+<title>אולפן AI – סרטים, סדרות ומשחקים</title>
+<meta name="description" content="יוצרים דמויות עם ננו בננה, כותבים עלילה עם AI, מרכיבים סרט או סדרה והופכים אותם למשחק.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+<style>
+:root{--bg:#0b0b14;--card:#161527;--card2:#1e1c35;--line:#2d2a4a;--txt:#f3efe6;--mut:#a8a2bd;--acc:#ffd166;--acc2:#f4a261;--ok:#2a9d8f;--err:#e63946;--warn:#e9a23b}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,"Segoe UI","Heebo",Arial,sans-serif;font-size:16px}
+body{background:radial-gradient(1200px 600px at 80% -10%,#2a2350 0,transparent 60%),var(--bg);min-height:100vh}
+a{color:var(--acc)}
+header{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:#0b0b14e6;backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+#logo{font-weight:800;font-size:20px;cursor:pointer;color:var(--acc);white-space:nowrap}
+header nav{display:flex;gap:6px}
+main{max-width:1100px;margin:0 auto;padding:16px}
+h1,h2,h3{margin:.2em 0 .5em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.hero-box{text-align:center;padding:26px 10px 10px}
+.hero-box h1{font-size:clamp(28px,5vw,46px);background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-box p{max-width:680px;margin:0 auto 14px;line-height:1.7;color:#d9d3ea}
+.steps{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;list-style:none;padding:0;margin:14px 0}
+.steps li{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:6px 14px 6px 8px;display:flex;gap:8px;align-items:center}
+.steps b{background:var(--acc);color:#1b1430;border-radius:50%;width:24px;height:24px;display:grid;place-items:center;font-size:13px}
+.tip{background:#ffd16614;border:1px dashed #ffd16666;border-radius:12px;padding:10px;display:inline-block}
+.btn{border:1px solid transparent;border-radius:999px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer;background:var(--card2);color:var(--txt);border-color:var(--line);transition:transform .1s,background .2s}
+.btn:hover{transform:translateY(-1px);background:#29264a}
+.btn.primary{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#1b1430;border:0}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 11px;font-size:14px}
+.btn.on{background:var(--acc);color:#1b1430}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row.space{justify-content:space-between}
+.row.tight{gap:4px;margin:8px 0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;flex:1;min-width:0}
+.fld>span{font-size:13px;color:var(--mut)}
+.inp{width:100%;background:#0f0e1c;border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 11px;font:inherit;resize:vertical}
+.inp:focus{outline:2px solid #ffd16688;border-color:transparent}
+select.inp{cursor:pointer}
+.chk{display:flex;align-items:center;gap:6px;cursor:pointer;margin:4px 0;font-size:14px}
+.muted{color:var(--mut);font-size:14px;line-height:1.6}
+.badge-line{font-size:13px;color:var(--mut);margin-bottom:10px;width:100%}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+.pill{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
+.proj-head{margin-bottom:8px}
+.ptitle{margin:0;font-size:24px}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;scrollbar-width:thin}
+.tab{flex:none;border:1px solid var(--line);background:var(--card);color:var(--txt);border-radius:12px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+.tab.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#1b1430;border-color:transparent}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.proj{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .15s}
+.proj:hover{transform:translateY(-3px);border-color:#ffd16677}
+.proj-cover{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--card2)}
+.empty{display:grid;place-items:center;font-size:40px;color:var(--mut);background:repeating-linear-gradient(45deg,#1a1930,#1a1930 10px,#1e1c38 10px,#1e1c38 20px)}
+.proj-body{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.proj-body small{color:var(--mut)}
+.x{position:absolute;top:8px;left:8px;background:#000a;border:0;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:15px}
+.char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.char{margin:0}
+.char-img-wrap{border-radius:12px;overflow:hidden}
+.char-img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.scene{display:grid;grid-template-columns:minmax(260px,420px) 1fr;gap:16px}
+@media (max-width:760px){.scene{grid-template-columns:1fr}}
+.scene-media{position:relative}
+.scene-num{position:absolute;top:8px;right:8px;background:var(--acc);color:#1b1430;font-weight:800;border-radius:50%;width:30px;height:30px;display:grid;place-items:center;z-index:1}
+.scene-img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;border-radius:12px;font-size:16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#0f0e1c;color:var(--txt);border-radius:999px;padding:3px 10px 3px 4px;font:inherit;font-size:14px;cursor:pointer}
+.chip img{width:24px;height:24px;border-radius:50%;object-fit:cover}
+.chip.on{background:#ffd16626;border-color:var(--acc)}
+.dl{display:grid;grid-template-columns:140px 1fr auto;gap:6px;margin-bottom:6px}
+@media (max-width:500px){.dl{grid-template-columns:1fr auto}.dl select{grid-column:1/-1}}
+details summary{cursor:pointer;color:var(--mut);font-size:14px;margin:6px 0}
+.screen{width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;display:block;margin:12px 0;box-shadow:0 10px 40px #000a}
+.kind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.kind{display:flex;flex-direction:column;justify-content:space-between}
+.kind.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+.game-stage{margin-bottom:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.stat{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.stat .ic{font-size:26px}
+.stat .v{font-size:34px;font-weight:800;color:var(--acc)}
+.stat .l{color:var(--mut);font-size:14px}
+.settings p{line-height:1.6}
+#busy{position:fixed;inset:0;background:#05040acc;z-index:50;display:grid;place-items:center}
+#busy[hidden]{display:none}
+.busy-box{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 30px;text-align:center;max-width:90vw}
+.spin{width:46px;height:46px;border:5px solid #ffd16633;border-top-color:var(--acc);border-radius:50%;margin:0 auto 12px;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+#toasts{position:fixed;bottom:16px;left:16px;right:16px;z-index:60;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 16px;max-width:640px;box-shadow:0 6px 24px #000a;transition:opacity .5s,transform .5s;font-size:14px;line-height:1.5;word-break:break-word}
+.toast.ok{border-color:var(--ok)}.toast.err{border-color:var(--err)}.toast.warn{border-color:var(--warn)}
+.toast.out{opacity:0;transform:translateY(10px)}
+</style>
+</head>
+<body>
+<header>
+  <div id="logo">🎬 אולפן AI</div>
+  <nav>
+    <button class="btn sm ghost" id="nav-home">🏠 הפרויקטים</button>
+    <button class="btn sm ghost" id="nav-settings">⚙️ הגדרות</button>
+  </nav>
+</header>
+<main id="main"></main>
+<div id="busy" hidden><div class="busy-box"><div class="spin"></div><div id="busy-msg">עובד…</div><div class="muted">יצירה עם AI יכולה לקחת עד דקה</div></div></div>
+<div id="toasts"></div>
+<script src="game-runtime.js"></script>
+<script src="player.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
